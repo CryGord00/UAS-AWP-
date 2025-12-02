@@ -1,0 +1,1138 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Toko Global Elektronik - Staff Panel</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.css" />
+  <link rel="stylesheet" href="../css/notification.css">
+  <style>
+    html {
+      scroll-behavior: smooth;
+    }
+
+    /* ===== BURGER MENU STYLES FOR STAFF ===== */
+    .burger-menu {
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      width: 30px;
+      height: 21px;
+      background: transparent;
+      border: none;
+      cursor: pointer;
+      padding: 0;
+      position: fixed;
+      top: 20px;
+      left: 20px;
+      z-index: 1000;
+    }
+
+    .burger-menu span {
+      display: block;
+      height: 3px;
+      width: 100%;
+      background-color: #374151;
+      border-radius: 2px;
+      transition: all 0.3s ease;
+    }
+
+    .burger-menu.active span:nth-child(1) {
+      transform: rotate(45deg) translate(6px, 6px);
+      background-color: white;
+    }
+
+    .burger-menu.active span:nth-child(2) {
+      opacity: 0;
+    }
+
+    .burger-menu.active span:nth-child(3) {
+      transform: rotate(-45deg) translate(6px, -6px);
+      background-color: white;
+    }
+
+    /* Mobile Navigation untuk Staff */
+    .mobile-nav {
+      position: fixed;
+      top: 0;
+      left: -100%;
+      width: 280px;
+      height: 100vh;
+      background-color: #1f2937;
+      transition: left 0.3s ease;
+      z-index: 999;
+      overflow-y: auto;
+    }
+
+    .mobile-nav.active {
+      left: 0;
+    }
+
+    .mobile-nav-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-color: rgba(0, 0, 0, 0.5);
+      z-index: 998;
+      display: none;
+    }
+
+    .mobile-nav-overlay.active {
+      display: block;
+    }
+
+    /* Sidebar item styles for mobile nav */
+    .sidebar-item {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      padding: 0.75rem 1rem;
+      border-radius: 0.5rem;
+      transition: all 0.2s;
+      text-decoration: none;
+      color: white;
+      cursor: pointer;
+    }
+
+    .sidebar-item:hover {
+      background-color: #374151;
+    }
+
+    /* Main content adjustments */
+    main {
+      margin-left: 0 !important;
+      width: 100%;
+    }
+
+    /* Swiper styles */
+    .swiper-button-next,
+    .swiper-button-prev {
+      @apply text-white bg-black/30 w-11 h-11 rounded-full transition;
+    }
+    .swiper-button-next:hover,
+    .swiper-button-prev:hover {
+      @apply bg-black/60;
+    }
+    .swiper-button-next::after,
+    .swiper-button-prev::after {
+      font-size: 22px;
+    }
+
+    /* Product card styles */
+    .product-card {
+      transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+    }
+    .product-card:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+    }
+    .line-clamp-2 {
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+
+    /* Style untuk stok - hanya angka tanpa warna */
+    .stok-plain {
+      color: #374151; /* gray-700 */
+      font-weight: 500;
+    }
+
+    /* Featured slideshow styles */
+    .featured-badge {
+      position: absolute;
+      top: 16px;
+      right: 16px;
+      background: linear-gradient(135deg, #FFD700, #FFA500);
+      color: white;
+      padding: 8px 12px;
+      border-radius: 20px;
+      font-weight: bold;
+      font-size: 0.8rem;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+      z-index: 10;
+    }
+    .product-info-overlay {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      background: linear-gradient(transparent, rgba(0,0,0,0.8));
+      color: white;
+      padding: 20px;
+      border-radius: 0 0 12px 12px;
+    }
+    .swiper-slide {
+      position: relative;
+    }
+
+    /* Responsive untuk Staff */
+    @media (max-width: 768px) {
+      header nav .hidden {
+        display: none;
+      }
+      
+      .container {
+        padding-left: 1rem;
+        padding-right: 1rem;
+      }
+    }
+  </style>
+  <script>
+    let products = [];
+    let keranjang = [];
+    let currentPage = 1;
+    const itemsPerPage = 8;
+    let filteredProducts = [];
+    let featuredProducts = [];
+    let featuredSwiper = null;
+
+    document.addEventListener('DOMContentLoaded', function() {
+        console.log('✅ DOMContentLoaded event fired! Halaman siap.');
+        const token = localStorage.getItem('token');
+        const userRole = localStorage.getItem('userRole');
+        
+        if (!token) {
+            window.notificationSystem.error(
+                'Anda harus login untuk mengakses halaman ini',
+                'Akses Ditolak!',
+                {
+                    duration: 3000,
+                    onClose: () => {
+                        window.location.href = '/login.html';
+                    }
+                }
+            );
+            return;
+        }
+
+        if (userRole === 'admin') {
+            const adminButton = document.getElementById('adminDashboardBtn');
+            if (adminButton) {
+                adminButton.classList.remove('hidden');
+            }
+        }
+
+        const username = localStorage.getItem('username');
+        if (username) {
+            const welcomeElements = document.querySelectorAll('#welcomeUser');
+            welcomeElements.forEach(el => {
+                el.textContent = `Welcome, ${username}!`;
+            });
+            
+            const mobileWelcomeUser = document.getElementById('mobileWelcomeUser');
+            if (mobileWelcomeUser) {
+                mobileWelcomeUser.textContent = `Welcome, ${username}!`;
+            }
+        }
+
+        loadProductsFromDatabase();
+        setupEventListeners();
+        setupBurgerMenu();
+    });
+
+    // Burger Menu Functionality untuk Staff
+    function setupBurgerMenu() {
+      const burgerMenu = document.getElementById('burgerMenu');
+      const mobileNav = document.getElementById('mobileNav');
+      const navOverlay = document.getElementById('navOverlay');
+
+      burgerMenu.addEventListener('click', function() {
+        this.classList.toggle('active');
+        mobileNav.classList.toggle('active');
+        navOverlay.classList.toggle('active');
+      });
+
+      navOverlay.addEventListener('click', function() {
+        burgerMenu.classList.remove('active');
+        mobileNav.classList.remove('active');
+        this.classList.remove('active');
+      });
+
+      // Close nav when clicking on links
+      const navLinks = mobileNav.querySelectorAll('button');
+      navLinks.forEach(link => {
+        link.addEventListener('click', () => {
+          burgerMenu.classList.remove('active');
+          mobileNav.classList.remove('active');
+          navOverlay.classList.remove('active');
+        });
+      });
+    }
+
+    function logout() {
+        window.notificationSystem.confirmDialog(
+            'Apakah Anda yakin ingin logout?',
+            'Konfirmasi Logout',
+            () => {
+                localStorage.removeItem('token');
+                localStorage.removeItem('userRole');
+                localStorage.removeItem('username');
+                window.location.href = '/login.html';
+            },
+            {
+                confirmText: 'Ya, Logout',
+                showCloseButton: true
+            }
+        );
+    }
+
+    function goToAdminDashboard() {
+        try {
+            window.location.href = '/admin/admin.html';
+        } catch (error) {
+            console.error('Error navigating to admin dashboard:', error);
+            window.notificationSystem.error(
+                'Tidak dapat mengarahkan ke dashboard admin',
+                'Error Navigasi!'
+            );
+        }
+    }
+
+    async function loadProductsFromDatabase() {
+        console.log('▶️ Memulai fungsi loadProductsFromDatabase...');
+        try {
+            const container = document.getElementById('daftar-produk');
+            container.innerHTML = `
+                <div class="col-span-full text-center py-12">
+                    <div class="flex justify-center items-center">
+                        <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+                        <span class="ml-2 text-gray-600">Memuat data produk...</span>
+                    </div>
+                </div>
+            `;
+
+            const token = localStorage.getItem('token');
+            const response = await fetch('/api/products', {
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            });
+
+            const result = await response.json();
+
+            if (result.success) {
+                products = result.data;
+                filteredProducts = [...products];
+                renderProducts();
+                
+                // Load featured products untuk slideshow
+                await loadFeaturedProducts();
+                
+                if (result.data.length === 0) {
+                    window.notificationSystem.info(
+                        'Belum ada produk yang tersedia. Silakan hubungi admin.',
+                        'Data Kosong'
+                    );
+                }
+            } else {
+                window.notificationSystem.error(
+                    'Gagal memuat data produk. Silakan refresh halaman.',
+                    'Error Memuat Data!'
+                );
+            }
+        } catch (error) {
+            console.error('Error loading products:', error);
+            window.notificationSystem.error(
+                'Terjadi kesalahan saat memuat data produk. Periksa koneksi internet.',
+                'Error Jaringan!'
+            );
+        }
+    }
+
+    async function loadFeaturedProducts() {
+        try {
+            const token = localStorage.getItem('token');
+            const response = await fetch('/api/products/featured', {
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            });
+
+            const result = await response.json();
+
+            if (result.success) {
+                featuredProducts = result.data;
+                updateFeaturedSlideshow();
+            } else {
+                console.warn('Tidak bisa memuat featured products:', result.message);
+                // Fallback: gunakan 4 produk pertama jika featured products tidak ada
+                featuredProducts = products.slice(0, 4);
+                updateFeaturedSlideshow();
+            }
+        } catch (error) {
+            console.error('Error loading featured products:', error);
+            // Fallback: gunakan 4 produk pertama
+            featuredProducts = products.slice(0, 4);
+            updateFeaturedSlideshow();
+        }
+    }
+
+    function updateFeaturedSlideshow() {
+        const swiperWrapper = document.querySelector('.main-carousel .swiper-wrapper');
+        
+        if (!swiperWrapper) {
+            console.error('Swiper wrapper tidak ditemukan');
+            return;
+        }
+
+        swiperWrapper.innerHTML = '';
+
+        if (featuredProducts.length === 0) {
+            // Fallback slides jika tidak ada featured products
+            const fallbackSlides = [
+                { gambar: '/images/101PL.jpg', name: 'Blender Miyako 101PL', harga_jual: 455000 },
+                { gambar: '/images/1172.jpeg', name: 'Setrika Philips', harga_jual: 325000 },
+                { gambar: '/images/sjx165.jpeg', name: 'Magic Com Cosmos', harga_jual: 546000 },
+                { gambar: '/images/1618B.jpeg', name: 'Blender Miyako 1618B', harga_jual: 364000 }
+            ];
+
+            fallbackSlides.forEach(slide => {
+                const slideDiv = document.createElement('div');
+                slideDiv.className = 'swiper-slide flex justify-center items-center bg-white';
+                slideDiv.innerHTML = `
+                    <img src="${slide.gambar}" alt="${slide.name}" 
+                         class="h-full w-auto object-contain rounded-lg" 
+                         onerror="this.src='/images/default-product.jpg'">
+                `;
+                swiperWrapper.appendChild(slideDiv);
+            });
+        } else {
+            // Tampilkan featured products
+            featuredProducts.forEach(product => {
+                const slideDiv = document.createElement('div');
+                slideDiv.className = 'swiper-slide flex justify-center items-center bg-white relative';
+                slideDiv.innerHTML = `
+                    <img src="${product.gambar || '/images/default-product.jpg'}" 
+                         alt="${product.name}" 
+                         class="h-full w-auto object-contain rounded-lg" 
+                         onerror="this.src='/images/default-product.jpg'">
+                    <div class="product-info-overlay">
+                        <div class="font-semibold text-lg">${product.name}</div>
+                        <div class="text-sm opacity-90">${product.jenis.replace('_', ' ').toUpperCase()} • ${product.merk.charAt(0).toUpperCase() + product.merk.slice(1)}</div>
+                        <div class="font-bold text-yellow-300 mt-1">Rp ${parseInt(product.harga_jual).toLocaleString('id-ID')}</div>
+                    </div>
+                    <div class="featured-badge">
+                        ⭐ FEATURED
+                    </div>
+                `;
+                swiperWrapper.appendChild(slideDiv);
+            });
+        }
+
+        // Reinitialize swiper jika sudah ada, atau buat baru
+        if (featuredSwiper) {
+            featuredSwiper.update();
+        } else {
+            initializeSwiper();
+        }
+    }
+
+    function initializeSwiper() {
+        featuredSwiper = new Swiper('.main-carousel', {
+            loop: true,
+            autoplay: {
+                delay: 4000,
+                disableOnInteraction: false,
+            },
+            navigation: {
+                nextEl: '.swiper-button-next',
+                prevEl: '.swiper-button-prev',
+            },
+            pagination: {
+                el: '.swiper-pagination',
+                clickable: true,
+            },
+            slidesPerView: 1,
+            spaceBetween: 10,
+            effect: 'fade',
+            fadeEffect: {
+                crossFade: true
+            },
+        });
+    }
+
+    function renderProducts() {
+        const container = document.getElementById('daftar-produk');
+        const startIndex = (currentPage - 1) * itemsPerPage;
+        const endIndex = startIndex + itemsPerPage;
+        const productsToShow = filteredProducts.slice(startIndex, endIndex);
+
+        container.innerHTML = '';
+
+        if (productsToShow.length === 0) {
+            container.innerHTML = `
+                <div class="col-span-full text-center py-12">
+                    <svg class="w-16 h-16 text-gray-300 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2M4 13h2m8-8V4a1 1 0 00-1-1h-2a1 1 0 00-1 1v1M9 7h6"></path>
+                    </svg>
+                    <p class="text-gray-500 text-lg">Tidak ada produk yang ditemukan</p>
+                    <p class="text-sm text-gray-400">Coba ubah filter pencarian</p>
+                </div>
+            `;
+            return;
+        }
+
+        productsToShow.forEach(product => {
+            // Hanya tampilkan angka stok tanpa warna dan tanpa keterangan
+            const stokText = product.stok.toString();
+
+            const productCard = document.createElement('div');
+            productCard.className = 'bg-white rounded-lg shadow-md product-card product hover:shadow-lg transition-shadow duration-300';
+            productCard.setAttribute('data-jenis', product.jenis);
+            productCard.setAttribute('data-merek', product.merk);
+            productCard.setAttribute('data-id', product.product_id);
+            
+            productCard.innerHTML = `
+                <div class="w-full h-48 flex items-center justify-center bg-gray-50 rounded-t-lg overflow-hidden p-4 relative">
+                    <img src="${product.gambar || '/images/default-product.jpg'}" alt="${product.name}" 
+                         class="max-h-full max-w-full object-contain" 
+                         onerror="this.src='/images/default-product.jpg'">
+                    ${product.is_featured ? '<div class="absolute top-2 right-2 bg-yellow-500 text-white px-2 py-1 rounded-full text-xs font-bold">⭐ FEATURED</div>' : ''}
+                </div>
+                <div class="p-4">
+                    <h4 class="text-lg font-semibold text-gray-800 mb-2 line-clamp-2" title="${product.name}">${product.name}</h4>
+                    <div class="space-y-2 text-sm text-gray-600">
+                        <p class="flex items-center justify-between">
+                            <span class="font-medium">Jenis:</span> 
+                            <span>${product.jenis.replace('_', ' ').toUpperCase()}</span>
+                        </p>
+                        <p class="flex items-center justify-between">
+                            <span class="font-medium">Merk:</span> 
+                            <span>${product.merk.charAt(0).toUpperCase() + product.merk.slice(1)}</span>
+                        </p>
+                        <p class="flex items-center justify-between">
+                            <span class="font-medium">Stok:</span> 
+                            <span class="stok-plain">${stokText}</span>
+                        </p>
+                        <p class="flex items-center justify-between">
+                            <span class="font-medium">Harga:</span> 
+                            <span class="font-semibold text-green-600">Rp ${parseInt(product.harga_jual).toLocaleString('id-ID')}</span>
+                        </p>
+                    </div>
+                    <button onclick="tambahKeKeranjang(${product.product_id})"
+                      class="mt-4 w-full bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 font-semibold transition transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
+                      ${product.stok <= 0 ? 'disabled' : ''}>
+                      ${product.stok <= 0 ? '📦 Stok Habis' : '🛒 Tambah ke Keranjang'}
+                    </button>
+                </div>
+            `;
+            
+            container.appendChild(productCard);
+        });
+
+        updatePagination();
+    }
+
+    function updatePagination() {
+        const totalPages = Math.ceil(filteredProducts.length / itemsPerPage);
+        const pageInfo = document.getElementById('pageInfo');
+        const prevPage = document.getElementById('prevPage');
+        const nextPage = document.getElementById('nextPage');
+        
+        if (pageInfo) {
+            pageInfo.textContent = `Halaman ${currentPage} dari ${totalPages}`;
+        }
+        
+        if (prevPage) {
+            prevPage.disabled = currentPage === 1;
+            prevPage.classList.toggle('opacity-50', currentPage === 1);
+            prevPage.classList.toggle('cursor-not-allowed', currentPage === 1);
+        }
+        
+        if (nextPage) {
+            nextPage.disabled = currentPage === totalPages || totalPages === 0;
+            nextPage.classList.toggle('opacity-50', currentPage === totalPages || totalPages === 0);
+            nextPage.classList.toggle('cursor-not-allowed', currentPage === totalPages || totalPages === 0);
+        }
+    }
+
+    function filterProducts() {
+        const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+        const jenisFilter = document.getElementById('filterJenis').value;
+        const merekFilter = document.getElementById('filterMerek').value;
+
+        filteredProducts = products.filter(product => {
+            const matchesSearch = product.name.toLowerCase().includes(searchTerm) ||
+                                product.tipe_model.toLowerCase().includes(searchTerm);
+            const matchesJenis = !jenisFilter || product.jenis === jenisFilter;
+            const matchesMerek = !merekFilter || product.merk === merekFilter;
+            
+            return matchesSearch && matchesJenis && matchesMerek;
+        });
+
+        currentPage = 1;
+        renderProducts();
+
+        if (filteredProducts.length === 0 && (searchTerm || jenisFilter || merekFilter)) {
+            window.notificationSystem.info(
+                'Tidak ada produk yang sesuai dengan filter pencarian Anda.',
+                'Hasil Pencarian'
+            );
+        }
+    }
+
+    // Fungsi untuk update tampilan stok tanpa warna
+    function updateStokDisplay(productId, stok) {
+        const stokElem = document.querySelector(`[data-id="${productId}"] .stok-plain`);
+        if (stokElem) {
+            // Hanya tampilkan angka, tanpa warna dan tanpa keterangan
+            stokElem.textContent = stok.toString();
+            
+            // Update button jika stok habis
+            const button = document.querySelector(`[data-id="${productId}"] button`);
+            if (button) {
+                if (stok <= 0) {
+                    button.disabled = true;
+                    button.textContent = '📦 Stok Habis';
+                    button.classList.add('opacity-50', 'cursor-not-allowed');
+                } else {
+                    button.disabled = false;
+                    button.textContent = '🛒 Tambah ke Keranjang';
+                    button.classList.remove('opacity-50', 'cursor-not-allowed');
+                }
+            }
+        }
+    }
+
+    function tambahKeKeranjang(productId) {
+        const product = products.find(p => p.product_id === productId);
+        if (!product) {
+            window.notificationSystem.error(
+                'Produk tidak ditemukan',
+                'Error!'
+            );
+            return;
+        }
+
+        if (product.stok <= 0) {
+            window.notificationSystem.warning(
+                'Stok produk ini sudah habis. Silakan pilih produk lain.',
+                'Stok Habis!'
+            );
+            return;
+        }
+
+        const existingItem = keranjang.find(item => item.id === productId);
+        
+        if (existingItem) {
+            if (product.stok - 1 < 0) {
+                window.notificationSystem.warning(
+                    'Stok tidak cukup untuk menambah jumlah item ini.',
+                    'Stok Tidak Cukup!'
+                );
+                return;
+            }
+            existingItem.jumlah++;
+        } else {
+            keranjang.push({
+                id: product.product_id,
+                name: product.name,
+                jenis: product.jenis,
+                merk: product.merk,
+                stok: product.stok,
+                hargaBeli: parseFloat(product.harga_beli),
+                hargaJual: parseFloat(product.harga_jual),
+                image: product.gambar,
+                jumlah: 1
+            });
+        }
+
+        product.stok--;
+        
+        // Update tampilan stok tanpa warna
+        updateStokDisplay(product.product_id, product.stok);
+
+        const button = document.querySelector(`[data-id="${product.product_id}"] button`);
+        if (button && product.stok <= 0) {
+            button.disabled = true;
+            button.textContent = '📦 Stok Habis';
+            button.classList.add('opacity-50', 'cursor-not-allowed');
+        }
+
+        renderKeranjang();
+        
+        window.notificationSystem.success(
+            `<strong>"${product.name}"</strong> berhasil ditambahkan ke keranjang.`,
+            'Produk Ditambahkan! 🛒'
+        );
+    }
+
+    function hapusItem(index) {
+        const item = keranjang[index];
+        const product = products.find(p => p.product_id === item.id);
+        
+        if (product) {
+            product.stok += item.jumlah;
+            
+            // Update tampilan stok tanpa warna
+            updateStokDisplay(item.id, product.stok);
+
+            const button = document.querySelector(`[data-id="${item.id}"] button`);
+            if (button && product.stok > 0) {
+                button.disabled = false;
+                button.textContent = '🛒 Tambah ke Keranjang';
+                button.classList.remove('opacity-50', 'cursor-not-allowed');
+            }
+        }
+
+        keranjang.splice(index, 1);
+        renderKeranjang();
+        
+        window.notificationSystem.success(
+            `<strong>"${item.name}"</strong> dihapus dari keranjang.`,
+            'Produk Dihapus! 🗑️'
+        );
+    }
+
+    function updateJumlah(index, newJumlah) {
+        const item = keranjang[index];
+        const product = products.find(p => p.product_id === item.id);
+        
+        if (!product) return;
+
+        if (newJumlah < 1) {
+            window.notificationSystem.warning(
+                'Jumlah produk tidak boleh kurang dari 1.',
+                'Jumlah Tidak Valid!'
+            );
+            renderKeranjang();
+            return;
+        }
+
+        const selisih = newJumlah - item.jumlah;
+        
+        if (selisih > product.stok) {
+            window.notificationSystem.warning(
+                `Stok tidak mencukupi. Stok tersedia: <strong>${product.stok}</strong>`,
+                'Stok Tidak Cukup! ⚠️'
+            );
+            renderKeranjang();
+            return;
+        }
+
+        product.stok -= selisih;
+        item.jumlah = newJumlah;
+        
+        // Update tampilan stok tanpa warna
+        updateStokDisplay(item.id, product.stok);
+
+        const button = document.querySelector(`[data-id="${item.id}"] button`);
+        if (button && product.stok <= 0) {
+            button.disabled = true;
+            button.textContent = '📦 Stok Habis';
+            button.classList.add('opacity-50', 'cursor-not-allowed');
+        }
+        
+        renderKeranjang();
+    }
+
+    function renderKeranjang() {
+        const tbody = document.getElementById('keranjangBody');
+        const grandTotalElem = document.getElementById('grandTotal');
+        
+        tbody.innerHTML = '';
+
+        if (keranjang.length === 0) {
+            tbody.innerHTML = `
+                <tr>
+                    <td colspan="5" class="border px-4 py-8 text-center text-gray-500">
+                        <div class="flex flex-col items-center">
+                            <svg class="w-16 h-16 text-gray-300 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"></path>
+                            </svg>
+                            <p class="text-lg font-medium">Keranjang belanja kosong</p>
+                            <p class="text-sm">Tambahkan produk dari daftar di atas</p>
+                        </div>
+                    </td>
+                </tr>
+            `;
+            grandTotalElem.textContent = 'Rp 0';
+            return;
+        }
+
+        let grandTotal = 0;
+
+        keranjang.forEach((item, index) => {
+            const total = item.hargaJual * item.jumlah;
+            grandTotal += total;
+
+            tbody.innerHTML += `
+                <tr class="border-b hover:bg-gray-50 transition">
+                    <td class="border px-4 py-3 font-medium">
+                        <div class="flex items-center">
+                            <span>${item.name}</span>
+                        </div>
+                    </td>
+                    <td class="border px-4 py-3">
+                        <input type="number" value="${item.hargaJual}" 
+                               class="w-32 p-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition text-right font-mono"
+                               onchange="updateHargaJual(${index}, this.value)"
+                               min="${item.hargaBeli}">
+                    </td>
+                    <td class="border px-4 py-3">
+                        <input type="number" min="1" value="${item.jumlah}" 
+                               class="w-20 p-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition text-center"
+                               onchange="updateJumlah(${index}, parseInt(this.value))">
+                    </td>
+                    <td class="border px-4 py-3 font-semibold text-green-600 text-right font-mono">Rp ${total.toLocaleString('id-ID')}</td>
+                    <td class="border px-4 py-3 text-center">
+                        <button onclick="hapusItem(${index})" 
+                                class="bg-red-500 text-white px-3 py-2 rounded-lg hover:bg-red-600 transition transform hover:scale-105 font-medium">
+                            🗑️ Hapus
+                        </button>
+                    </td>
+                </tr>
+            `;
+        });
+
+        grandTotalElem.innerHTML = `<span class="font-mono">Rp ${grandTotal.toLocaleString('id-ID')}</span>`;
+    }
+
+    function updateHargaJual(index, newHarga) {
+        const harga = parseInt(newHarga) || keranjang[index].hargaJual;
+        
+        if (harga < keranjang[index].hargaBeli) {
+            window.notificationSystem.warning(
+                `Harga jual tidak boleh kurang dari harga beli (Rp ${keranjang[index].hargaBeli.toLocaleString('id-ID')})`,
+                'Harga Tidak Valid! ⚠️'
+            );
+            renderKeranjang();
+            return;
+        }
+
+        if (harga <= 0) {
+            window.notificationSystem.warning(
+                'Harga jual harus lebih dari 0.',
+                'Harga Tidak Valid! ⚠️'
+            );
+            renderKeranjang();
+            return;
+        }
+
+        keranjang[index].hargaJual = harga;
+        renderKeranjang();
+    }
+
+    function checkout() {
+        if (keranjang.length === 0) {
+            window.notificationSystem.warning(
+                'Keranjang belanja masih kosong. Tambahkan produk terlebih dahulu.',
+                'Keranjang Kosong! 🛒'
+            );
+            return;
+        }
+
+        const grandTotal = keranjang.reduce((sum, item) => sum + (item.hargaJual * item.jumlah), 0);
+        const totalItems = keranjang.reduce((sum, item) => sum + item.jumlah, 0);
+        
+        window.notificationSystem.confirmDialog(
+            `Anda akan melakukan checkout untuk <strong>${totalItems}</strong> item produk dengan total:<br>
+            <strong class="text-xl text-green-600">Rp ${grandTotal.toLocaleString('id-ID')}</strong><br><br>
+            Apakah Anda yakin ingin melanjutkan?`,
+            'Konfirmasi Checkout ✅',
+            () => {
+                processCheckout(grandTotal, totalItems);
+            },
+            {
+                confirmText: 'Ya, Checkout',
+                cancelText: 'Batal',
+                showCloseButton: true
+            }
+        );
+    }
+
+    function processCheckout(grandTotal, totalItems) {
+        const checkoutBtn = document.querySelector('button[onclick="checkout()"]');
+        const originalText = checkoutBtn.innerHTML;
+        checkoutBtn.innerHTML = '⏳ Memproses...';
+        checkoutBtn.disabled = true;
+
+        setTimeout(() => {
+            window.notificationSystem.success(
+                `Checkout berhasil!<br>
+                <strong>${totalItems}</strong> item produk<br>
+                Total: <strong>Rp ${grandTotal.toLocaleString('id-ID')}</strong><br><br>
+                Terima kasih telah berbelanja di Toko Global Elektronik!`,
+                'Checkout Berhasil! 🎉',
+                {
+                    duration: 5000,
+                    onClose: () => {
+                        keranjang = [];
+                        renderKeranjang();
+                        loadProductsFromDatabase();
+                    }
+                }
+            );
+
+            checkoutBtn.innerHTML = originalText;
+            checkoutBtn.disabled = false;
+        }, 2000);
+    }
+
+    function clearKeranjang() {
+        if (keranjang.length === 0) {
+            window.notificationSystem.info(
+                'Keranjang sudah kosong.',
+                'Keranjang Kosong'
+            );
+            return;
+        }
+
+        window.notificationSystem.confirmDialog(
+            `Apakah Anda yakin ingin mengosongkan seluruh keranjang?<br>
+            <strong>${keranjang.length}</strong> item produk akan dihapus.`,
+            'Konfirmasi Kosongkan Keranjang',
+            () => {
+                keranjang.forEach(item => {
+                    const product = products.find(p => p.product_id === item.id);
+                    if (product) {
+                        product.stok += item.jumlah;
+                        
+                        // Update tampilan stok tanpa warna
+                        updateStokDisplay(item.id, product.stok);
+
+                        const button = document.querySelector(`[data-id="${item.id}"] button`);
+                        if (button && product.stok > 0) {
+                            button.disabled = false;
+                            button.textContent = '🛒 Tambah ke Keranjang';
+                            button.classList.remove('opacity-50', 'cursor-not-allowed');
+                        }
+                    }
+                });
+
+                keranjang = [];
+                renderKeranjang();
+                
+                window.notificationSystem.success(
+                    'Semua item berhasil dihapus dari keranjang.',
+                    'Keranjang Dikosongkan! 🗑️'
+                );
+            },
+            {
+                confirmText: 'Ya, Kosongkan',
+                showCloseButton: true
+            }
+        );
+    }
+
+    function setupEventListeners() {
+        const searchInput = document.getElementById('searchInput');
+        const filterJenis = document.getElementById('filterJenis');
+        const filterMerek = document.getElementById('filterMerek');
+        const filterBtn = document.getElementById('filterBtn');
+        const prevPage = document.getElementById('prevPage');
+        const nextPage = document.getElementById('nextPage');
+
+        if (searchInput) {
+            searchInput.addEventListener('input', filterProducts);
+        }
+        if (filterJenis) {
+            filterJenis.addEventListener('change', filterProducts);
+        }
+        if (filterMerek) {
+            filterMerek.addEventListener('change', filterProducts);
+        }
+        if (filterBtn) {
+            filterBtn.addEventListener('click', filterProducts);
+        }
+        if (prevPage) {
+            prevPage.addEventListener('click', () => {
+                if (currentPage > 1) {
+                    currentPage--;
+                    renderProducts();
+                }
+            });
+        }
+        if (nextPage) {
+            nextPage.addEventListener('click', () => {
+                const totalPages = Math.ceil(filteredProducts.length / itemsPerPage);
+                if (currentPage < totalPages) {
+                    currentPage++;
+                    renderProducts();
+                }
+            });
+        }
+    }
+  </script>
+</head>
+
+<body class="bg-gray-50 font-sans text-gray-800">
+  <!-- Burger Menu Button untuk Staff -->
+  <button class="burger-menu" id="burgerMenu">
+    <span></span>
+    <span></span>
+    <span></span>
+  </button>
+
+  <header class="bg-white/80 backdrop-blur-md shadow-sm sticky top-0 z-50 transition">
+    <nav class="container mx-auto px-6 py-4 flex justify-between items-center">
+      <a href="#" class="text-2xl md:text-3xl font-bold text-gray-800 tracking-tight">
+        Toko <span class="text-blue-600">Global Elektronik</span>
+      </a>
+
+      <div class="flex items-center space-x-4">
+        <button id="adminDashboardBtn" onclick="goToAdminDashboard()" 
+                class="hidden bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 transition-all duration-300 shadow font-semibold">
+          ← Back to Admin Dashboard
+        </button>
+        
+        <button onclick="logout()" 
+                class="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition-all duration-300 shadow font-semibold">
+          Logout
+        </button>
+      </div>
+    </nav>
+  </header>
+
+  <main class="container mx-auto px-6 py-10">
+    <section class="mb-8 text-center">
+      <h1 class="text-3xl md:text-4xl font-bold text-gray-800 mb-2">
+        Selamat Datang di <span class="text-blue-600">Toko Global Elektronik</span>
+      </h1>
+      <p class="text-gray-600 text-lg" id="welcomeUser">Welcome, Staff!</p>
+    </section>
+
+    <section class="mb-16">
+      <h2 class="text-2xl font-extrabold text-gray-800 mb-6 text-center">
+        ⭐ Produk Unggulan ⭐
+      </h2>
+
+      <div class="swiper main-carousel h-72 md:h-96 rounded-xl overflow-hidden shadow-lg bg-gray-50">
+        <div class="swiper-wrapper">
+          <!-- Slides akan diisi oleh JavaScript -->
+        </div>
+
+        <div class="swiper-button-next"></div>
+        <div class="swiper-button-prev"></div>
+        <div class="swiper-pagination"></div>
+      </div>
+    </section>
+
+    <section id="produk" class="mb-10 bg-white p-6 rounded-xl shadow-md border border-gray-200">
+      <div class="grid grid-cols-1 md:grid-cols-5 gap-4">
+        <input id="searchInput" type="text" placeholder="🔍 Cari nama produk..."
+          class="md:col-span-2 p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition">
+
+        <select id="filterJenis"
+          class="p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition">
+          <option value="">Semua Jenis</option>
+          <option value="magic_com">Magic Com</option>                      
+          <option value="kulkas">Kulkas</option>
+          <option value="kipas_angin">Kipas Angin</option>
+          <option value="setrika">Setrika</option>
+          <option value="blender">Blender</option>
+          <option value="kompor">Kompor</option>
+          <option value="tv">TV</option>
+          <option value="ac">AC</option>
+          <option value="mesin_cuci">Mesin Cuci</option>
+          <option value="dispenser">Dispenser</option>
+        </select>
+
+        <select id="filterMerek"
+          class="p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition">
+          <option value="">Semua Merk</option>
+          <option value="miyako">Miyako</option>
+          <option value="cosmos">Cosmos</option>
+          <option value="philips">Philips</option>
+          <option value="sharp">Sharp</option>
+          <option value="polytron">Polytron</option>
+          <option value="panasonic">Panasonic</option>
+        </select>
+
+        <button id="filterBtn"
+          class="w-full bg-blue-600 text-white p-3 rounded-lg hover:bg-blue-700 font-semibold transition">
+          Cari Produk
+        </button>
+      </div>
+    </section>
+
+    <section id="daftar-produk" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 mb-10">
+      <!-- Product Cards akan diisi oleh JavaScript -->
+    </section>
+
+    <div id="pagination" class="flex justify-center items-center space-x-4 mt-8 mb-12">
+      <button id="prevPage" class="bg-gray-300 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-400 transition disabled:opacity-50 disabled:cursor-not-allowed">
+        ← Sebelumnya
+      </button>
+      <span id="pageInfo" class="font-semibold text-gray-700">Halaman 1 dari 1</span>
+      <button id="nextPage" class="bg-gray-300 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-400 transition disabled:opacity-50 disabled:cursor-not-allowed">
+        Berikutnya →
+      </button>
+    </div>
+
+    <section id="keranjang-section" class="bg-white p-6 rounded-xl shadow-md border border-gray-200">
+      <div class="flex justify-between items-center mb-6">
+        <h2 class="text-2xl font-bold text-gray-800">Keranjang Belanja</h2>
+        <button onclick="clearKeranjang()" 
+                class="bg-gray-500 text-white px-4 py-2 rounded-lg hover:bg-gray-600 font-semibold transition">
+            🗑️ Kosongkan Keranjang
+        </button>
+      </div>
+      
+      <div class="overflow-x-auto mb-4">
+        <table class="min-w-full border-collapse border border-gray-300">
+          <thead class="bg-gray-100">
+            <tr>
+              <th class="border px-4 py-3 text-left font-semibold">Produk</th>
+              <th class="border px-4 py-3 text-left font-semibold">Harga Jual (Rp)</th>
+              <th class="border px-4 py-3 text-left font-semibold">Jumlah</th>
+              <th class="border px-4 py-3 text-left font-semibold">Total (Rp)</th>
+              <th class="border px-4 py-3 font-semibold">Aksi</th>
+            </tr>
+          </thead>
+          <tbody id="keranjangBody">
+            <!-- Keranjang akan diisi oleh JavaScript -->
+          </tbody>
+        </table>
+      </div>
+      
+      <div class="flex justify-between items-center mt-6 pt-4 border-t border-gray-200">
+        <div class="text-lg font-semibold text-gray-800">
+          Grand Total: <span id="grandTotal" class="text-green-600">Rp 0</span>
+        </div>
+        <div class="flex gap-3">
+          <button onclick="checkout()" 
+                  class="bg-green-600 text-white px-6 py-3 rounded-lg hover:bg-green-700 font-semibold transition shadow transform hover:scale-105">
+            ✅ Proses Checkout
+          </button>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- Mobile Navigation untuk Staff -->
+  <div class="mobile-nav" id="mobileNav">
+    <div class="p-6 text-center border-b border-gray-700">
+      <h1 class="text-2xl font-bold text-white">Toko Global Elektronik</h1>
+      <p class="text-sm text-gray-300 mt-1" id="mobileWelcomeUser">Welcome, Staff!</p>
+    </div>
+
+    <nav class="flex-1 p-4 space-y-2">
+      <button onclick="goToAdminDashboard()" class="sidebar-item w-full text-left">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
+        </svg>
+        <span>Back to Admin Dashboard</span>
+      </button>
+
+      <button onclick="logout()" class="sidebar-item w-full text-left">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path>
+        </svg>
+        <span>Logout</span>
+      </button>
+    </nav>
+  </div>
+
+  <!-- Overlay -->
+  <div class="mobile-nav-overlay" id="navOverlay"></div>
+
+  <script src="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.js"></script>
+  <script src="../js/notification.js"></script>
+</body>
+</html>

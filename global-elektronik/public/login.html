@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Global Elektronik - Login</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600&display=swap" rel="stylesheet">
+    <!-- Tambahkan link ke notification.css -->
+    <link rel="stylesheet" href="css/notification.css">
+    <style>
+      body {
+        font-family: 'Poppins', sans-serif;
+      }
+    </style>
+</head>
+<body class="bg-gray-300 flex items-center justify-center min-h-screen">
+
+    <div class="flex flex-col md:flex-row w-full max-w-4xl h-auto md:h-[600px] bg-white shadow-xl rounded-2xl overflow-hidden m-4">
+
+        <div class="w-full md:w-1/2 bg-gradient-to-r from-purple-600 to-blue-500 text-white flex flex-col justify-center items-center text-center p-10 h-[250px] md:h-auto">
+            <img src="./images/logo1.png" alt="Logo Global Elektronik" class="w-[110px] h-auto mb-5">
+            <div class="text-2xl font-semibold mb-5 tracking-wide">Global Elektronik Database</div>
+            <h1 class="text-2xl md:text-4xl font-bold mb-4">Selamat Datang Kembali!</h1> 
+            <p class="text-lg md:text-xl mb-4">Halo, kamu bisa masukkan username dan password yang sudah didaftarkan kepada Admin</p>
+        </div>
+
+        <div class="w-full md:w-1/2 p-8 md:p-12 flex justify-center items-center">
+            <div class="w-full max-w-sm">
+                <h2 class="text-2xl font-semibold text-center text-gray-800 mb-8">Login ke Akun Anda</h2>
+                
+                <form id="loginForm">
+                    <div class="mb-5">
+                        <label for="username" class="block mb-2 text-sm font-medium text-gray-700">Username</label>
+                        <div class="relative">
+                            <i class="fas fa-user absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"></i>
+                            <input type="text" id="username" name="username" placeholder="Masukkan username Anda" required
+                                class="w-full py-3 pr-4 pl-10 border border-gray-300 rounded-lg text-sm transition-colors focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500">
+                        </div>
+                    </div>
+
+                    <div class="mb-5">
+                        <label for="password" class="block mb-2 text-sm font-medium text-gray-700">Password</label>
+                        <div class="relative">
+                            <i class="fas fa-lock absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"></i>
+                            <input type="password" id="password" name="password" placeholder="Masukkan password Anda" required
+                                class="w-full py-3 pr-4 pl-10 border border-gray-300 rounded-lg text-sm transition-colors focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500">
+                        </div>
+                    </div>
+
+                    <!-- Role -->
+                    <div class="mb-7">
+                        <label class="block mb-2 text-sm font-medium text-gray-700">Login sebagai</label>
+                        <div class="flex items-center space-x-6">
+                            <label class="inline-flex items-center">
+                                <input 
+                                    type="radio" 
+                                    name="role" 
+                                    value="admin"
+                                    class="w-4 h-4 text-blue-600 border-gray-300 focus:ring-blue-500">
+                                <span class="ml-2 text-gray-700">Admin</span>
+                            </label>
+
+                            <label class="inline-flex items-center">
+                                <input 
+                                    type="radio" 
+                                    name="role" 
+                                    value="staff"
+                                    class="w-4 h-4 text-blue-600 border-gray-300 focus:ring-blue-500">
+                                <span class="ml-2 text-gray-700">Staff</span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <div id="errorMessage" class="mb-4 text-red-500 text-sm hidden"></div>
+                    
+                    <!-- Tombol Login -->
+                    <button type="submit" class="w-full py-3 bg-gradient-to-r from-purple-600 to-blue-500 text-white font-semibold rounded-lg cursor-pointer transition-transform hover:scale-105 hover:shadow-lg">
+                        <span id="loginText">🔐 Login</span>
+                        <span id="loadingText" class="hidden">
+                            <i class="fas fa-spinner fa-spin mr-2"></i>Memproses...
+                        </span>
+                    </button>
+                </form>
+
+                <div class="mt-6 text-center">
+                    <a href="index.html" class="inline-flex items-center text-red-500 font-medium transition-colors hover:text-red-700 hover:underline">
+                        <i class="fas fa-arrow-left mr-2"></i>
+                        Kembali ke Beranda
+                    </a>
+                </div>
+
+                <!-- Informasi Login Default -->
+                <div class="mt-6 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+                    <h3 class="text-sm font-semibold text-yellow-800 mb-2">Info Login Default:</h3>
+                    <div class="text-xs text-yellow-700 space-y-1">
+                        <p><strong>Admin:</strong> admin / admin123</p>
+                        <p><strong>Staff:</strong> staff / staff123</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Load notification.js -->
+    <script src="js/notification.js"></script>
+    <script>
+        document.getElementById('loginForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const formData = {
+                username: document.getElementById('username').value.trim(),
+                password: document.getElementById('password').value,
+                role: document.querySelector('input[name="role"]:checked')?.value
+            };
+
+            // Validasi form
+            if (!formData.username || !formData.password) {
+                window.notificationSystem.warning(
+                    'Username dan password harus diisi',
+                    'Form Tidak Lengkap!'
+                );
+                return;
+            }
+
+            if (!formData.role) {
+                window.notificationSystem.warning(
+                    'Pilih role terlebih dahulu (Admin atau Staff)',
+                    'Role Belum Dipilih!'
+                );
+                return;
+            }
+    
+            const errorDiv = document.getElementById('errorMessage');
+            errorDiv.classList.add('hidden');
+            
+            // Tampilkan loading state
+            const loginBtn = document.querySelector('button[type="submit"]');
+            const loginText = document.getElementById('loginText');
+            const loadingText = document.getElementById('loadingText');
+            
+            loginText.classList.add('hidden');
+            loadingText.classList.remove('hidden');
+            loginBtn.disabled = true;
+            
+            try {
+                const response = await fetch('/api/login', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(formData)
+                });
+    
+                const data = await response.json();
+    
+                if (data.success) {
+                    // Simpan token di localStorage
+                    localStorage.setItem('token', data.token);
+                    localStorage.setItem('userRole', data.role);
+                    localStorage.setItem('username', data.username);
+                    
+                    window.notificationSystem.success(
+                        `Login berhasil! Selamat datang <strong>${data.username}</strong>. Anda akan diarahkan ke dashboard...`,
+                        'Login Berhasil! 🎉',
+                        {
+                            duration: 3000,
+                            onClose: () => {
+                                // Redirect ke halaman dashboard sesuai role
+                                if (data.role === 'admin') {
+                                    window.location.href = '/admin/admin.html';
+                                } else {
+                                    window.location.href = '/staff/staff.html';
+                                }
+                            }
+                        }
+                    );
+                } else {
+                    window.notificationSystem.error(
+                        data.message || 'Terjadi kesalahan saat login. Periksa username dan password Anda.',
+                        'Login Gagal! ❌'
+                    );
+                }
+            } catch (error) {
+                console.error('Login error:', error);
+                window.notificationSystem.error(
+                    'Terjadi kesalahan jaringan. Periksa koneksi internet Anda dan coba lagi.',
+                    'Error Jaringan! 🌐'
+                );
+            } finally {
+                // Reset loading state
+                loginText.classList.remove('hidden');
+                loadingText.classList.add('hidden');
+                loginBtn.disabled = false;
+            }
+        });
+    
+        // Set default role to staff untuk UX yang lebih baik
+        document.addEventListener('DOMContentLoaded', function() {
+            const staffRadio = document.querySelector('input[value="staff"]');
+            if (staffRadio) {
+                staffRadio.checked = true;
+            }
+
+            // Auto-focus pada username field
+            document.getElementById('username').focus();
+        });
+
+        // Tambahkan event listener untuk Enter key
+        document.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                document.getElementById('loginForm').dispatchEvent(new Event('submit'));
+            }
+        });
+    </script>
+</body>
+</html>

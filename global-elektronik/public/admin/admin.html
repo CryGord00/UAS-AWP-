@@ -1,0 +1,1367 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Dashboard Admin - Manajemen Stok</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="../css/notification.css">
+  <style>
+    /* ===== BURGER MENU STYLES ===== */
+    .burger-menu {
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      width: 30px;
+      height: 21px;
+      background: transparent;
+      border: none;
+      cursor: pointer;
+      padding: 0;
+      position: fixed;
+      top: 20px;
+      left: 20px;
+      z-index: 1000;
+    }
+
+    .burger-menu span {
+      display: block;
+      height: 3px;
+      width: 100%;
+      background-color: #374151;
+      border-radius: 2px;
+      transition: all 0.3s ease;
+    }
+
+    .burger-menu.active span:nth-child(1) {
+      transform: rotate(45deg) translate(6px, 6px);
+      background-color: white;
+    }
+
+    .burger-menu.active span:nth-child(2) {
+      opacity: 0;
+    }
+
+    .burger-menu.active span:nth-child(3) {
+      transform: rotate(-45deg) translate(6px, -6px);
+      background-color: white;
+    }
+
+    /* Mobile Sidebar Styles */
+    .mobile-sidebar {
+      position: fixed;
+      top: 0;
+      left: -100%;
+      width: 280px;
+      height: 100vh;
+      background-color: #1f2937;
+      transition: left 0.3s ease;
+      z-index: 999;
+      overflow-y: auto;
+    }
+
+    .mobile-sidebar.active {
+      left: 0;
+    }
+
+    .mobile-sidebar-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-color: rgba(0, 0, 0, 0.5);
+      z-index: 998;
+      display: none;
+    }
+
+    .mobile-sidebar-overlay.active {
+      display: block;
+    }
+
+    /* Sidebar item styles */
+    .sidebar-item {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      padding: 0.75rem 1rem;
+      border-radius: 0.5rem;
+      transition: all 0.2s;
+      text-decoration: none;
+      color: white;
+      cursor: pointer;
+    }
+    
+    .sidebar-item:hover {
+      background-color: #374151;
+    }
+    
+    .sidebar-item.active {
+      background-color: #1f2937;
+    }
+
+    /* Main content adjustments */
+    main {
+      margin-left: 0 !important;
+      width: 100%;
+    }
+
+    .main-header {
+      padding-left: 60px !important;
+    }
+
+    /* Table improvements - no horizontal scroll */
+    .table-container {
+      overflow-x: auto;
+      border: 1px solid #e5e7eb;
+      border-radius: 0.5rem;
+    }
+
+    .compact-table {
+      width: 100%;
+      border-collapse: collapse;
+      background: white;
+      table-layout: auto;
+    }
+
+    .compact-table th {
+      background: #f8fafc;
+      padding: 0.75rem 0.5rem;
+      font-size: 0.7rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: #374151;
+      border-bottom: 2px solid #e5e7eb;
+      text-align: left;
+      white-space: nowrap;
+    }
+
+    .compact-table td {
+      padding: 0.75rem 0.5rem;
+      font-size: 0.8rem;
+      border-bottom: 1px solid #f3f4f6;
+      vertical-align: middle;
+      line-height: 1.2;
+    }
+
+    .compact-table tr:hover {
+      background-color: #f9fafb;
+    }
+
+    /* Column widths - optimized to fit screen */
+    .col-nama { width: 22%; min-width: 160px; }
+    .col-jenis { width: 10%; min-width: 80px; }
+    .col-merk { width: 10%; min-width: 80px; }
+    .col-stok { width: 8%; min-width: 70px; text-align: center; }
+    .col-harga-beli { width: 12%; min-width: 100px; }
+    .col-harga-jual { width: 12%; min-width: 100px; }
+    .col-keuntungan { width: 12%; min-width: 100px; }
+    .col-aksi { width: 14%; min-width: 120px; text-align: center; }
+
+    /* Table content */
+    .table-content {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      max-width: 100%;
+    }
+
+    .product-name {
+      font-weight: 600;
+      color: #1f2937;
+      display: flex;
+      align-items: center;
+      gap: 0.25rem;
+      flex-wrap: wrap;
+    }
+
+    /* Number formatting */
+    .number-cell {
+      text-align: right;
+      font-family: 'Courier New', monospace;
+      font-weight: 500;
+      color: #059669;
+      font-size: 0.8rem;
+    }
+
+    /* Stock indicator - simplified */
+    .stok-indicator {
+      display: inline-flex;
+      align-items: center;
+      padding: 0.2rem 0.5rem;
+      border-radius: 9999px;
+      font-size: 0.7rem;
+      font-weight: 600;
+      white-space: nowrap;
+    }
+    
+    .stok-tinggi {
+      background-color: #dcfce7;
+      color: #166534;
+      border: 1px solid #bbf7d0;
+    }
+    
+    .stok-sedang {
+      background-color: #fef9c3;
+      color: #854d0e;
+      border: 1px solid #fef08a;
+    }
+    
+    .stok-rendah {
+      background-color: #fecaca;
+      color: #991b1b;
+      border: 1px solid #fca5a5;
+    }
+    
+    .stok-habis {
+      background-color: #f3f4f6;
+      color: #6b7280;
+      border: 1px solid #e5e7eb;
+    }
+
+    /* Action buttons */
+    .action-buttons {
+      display: flex;
+      gap: 0.25rem;
+      justify-content: center;
+      flex-wrap: nowrap;
+    }
+    
+    .btn-featured {
+      background-color: #8b5cf6;
+      color: white;
+      padding: 0.3rem 0.5rem;
+      border-radius: 0.375rem;
+      font-size: 0.7rem;
+      font-weight: 500;
+      transition: all 0.2s;
+      cursor: pointer;
+      border: none;
+      white-space: nowrap;
+      display: flex;
+      align-items: center;
+      gap: 0.25rem;
+      min-width: auto;
+    }
+    
+    .btn-featured:hover {
+      background-color: #7c3aed;
+    }
+    
+    .btn-featured.active {
+      background-color: #f59e0b;
+    }
+    
+    .btn-featured.active:hover {
+      background-color: #d97706;
+    }
+    
+    .btn-edit {
+      background-color: #eab308;
+      color: white;
+      padding: 0.3rem 0.5rem;
+      border-radius: 0.375rem;
+      font-size: 0.7rem;
+      font-weight: 500;
+      transition: all 0.2s;
+      cursor: pointer;
+      border: none;
+      white-space: nowrap;
+      display: flex;
+      align-items: center;
+      gap: 0.25rem;
+      min-width: auto;
+    }
+    
+    .btn-edit:hover {
+      background-color: #ca8a04;
+    }
+    
+    .btn-delete {
+      background-color: #dc2626;
+      color: white;
+      padding: 0.3rem 0.5rem;
+      border-radius: 0.375rem;
+      font-size: 0.7rem;
+      font-weight: 500;
+      transition: all 0.2s;
+      cursor: pointer;
+      border: none;
+      white-space: nowrap;
+      display: flex;
+      align-items: center;
+      gap: 0.25rem;
+      min-width: auto;
+    }
+    
+    .btn-delete:hover {
+      background-color: #b91c1c;
+    }
+
+    /* Featured badge */
+    .featured-badge {
+      display: inline-flex;
+      align-items: center;
+      background: linear-gradient(135deg, #f59e0b, #d97706);
+      color: white;
+      padding: 0.15rem 0.4rem;
+      border-radius: 4px;
+      font-size: 0.6rem;
+      font-weight: 600;
+      margin-left: 0.25rem;
+      white-space: nowrap;
+    }
+
+    /* Loading spinner */
+    .loading-spinner {
+      display: inline-block;
+      width: 1rem;
+      height: 1rem;
+      border: 2px solid #ffffff;
+      border-radius: 50%;
+      border-top-color: transparent;
+      animation: spin 1s ease-in-out infinite;
+    }
+    
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    /* Edit modal */
+    .edit-product-modal {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.5);
+      z-index: 1000;
+      align-items: center;
+      justify-content: center;
+    }
+    
+    .edit-product-modal.show {
+      display: flex;
+    }
+
+    /* Responsive adjustments */
+    @media (max-width: 1024px) {
+      .compact-table {
+        table-layout: auto;
+      }
+      
+      .col-nama, .col-jenis, .col-merk, .col-stok, 
+      .col-harga-beli, .col-harga-jual, .col-keuntungan, .col-aksi {
+        width: auto;
+        min-width: auto;
+      }
+      
+      .compact-table th,
+      .compact-table td {
+        padding: 0.5rem 0.25rem;
+        font-size: 0.75rem;
+      }
+      
+      .action-buttons {
+        flex-direction: column;
+        gap: 0.2rem;
+      }
+      
+      .btn-featured, .btn-edit, .btn-delete {
+        font-size: 0.65rem;
+        padding: 0.25rem 0.4rem;
+        justify-content: center;
+      }
+    }
+
+    @media (max-width: 768px) {
+      .table-container {
+        overflow-x: auto;
+        font-size: 0.8rem;
+      }
+      
+      .compact-table th,
+      .compact-table td {
+        padding: 0.4rem 0.2rem;
+        font-size: 0.7rem;
+      }
+      
+      .product-name {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.1rem;
+      }
+      
+      .featured-badge {
+        margin-left: 0;
+        margin-top: 0.1rem;
+      }
+      
+      .stok-indicator {
+        font-size: 0.65rem;
+        padding: 0.15rem 0.4rem;
+      }
+      
+      .action-buttons {
+        flex-direction: row;
+        gap: 0.15rem;
+      }
+      
+      .btn-featured, .btn-edit, .btn-delete {
+        font-size: 0.6rem;
+        padding: 0.2rem 0.3rem;
+      }
+      
+      .btn-featured span,
+      .btn-edit span,
+      .btn-delete span {
+        display: none;
+      }
+    }
+  </style>
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const token = localStorage.getItem('token');
+        const userRole = localStorage.getItem('userRole');
+        
+        if (!token || userRole !== 'admin') {
+            window.notificationSystem.error(
+                'Anda harus login sebagai admin untuk mengakses halaman ini',
+                'Akses Ditolak!',
+                {
+                    duration: 3000,
+                    onClose: () => {
+                        window.location.href = '/login.html';
+                    }
+                }
+            );
+            return;
+        }
+
+        const username = localStorage.getItem('username');
+        if (username) {
+            document.getElementById('mobileWelcomeUser').textContent = `Welcome, ${username}!`;
+        }
+
+        loadProducts();
+        setupSearch();
+        setupEditModal();
+        setupBurgerMenu();
+    });
+
+    // Burger Menu Functionality
+    function setupBurgerMenu() {
+      const burgerMenu = document.getElementById('burgerMenu');
+      const mobileSidebar = document.getElementById('mobileSidebar');
+      const sidebarOverlay = document.getElementById('sidebarOverlay');
+
+      burgerMenu.addEventListener('click', function() {
+        this.classList.toggle('active');
+        mobileSidebar.classList.toggle('active');
+        sidebarOverlay.classList.toggle('active');
+      });
+
+      sidebarOverlay.addEventListener('click', function() {
+        burgerMenu.classList.remove('active');
+        mobileSidebar.classList.remove('active');
+        this.classList.remove('active');
+      });
+
+      // Close sidebar when clicking on links
+      const sidebarLinks = mobileSidebar.querySelectorAll('a, button');
+      sidebarLinks.forEach(link => {
+        link.addEventListener('click', () => {
+          burgerMenu.classList.remove('active');
+          mobileSidebar.classList.remove('active');
+          sidebarOverlay.classList.remove('active');
+        });
+      });
+    }
+
+    function logout() {
+        window.notificationSystem.confirmDialog(
+            'Apakah Anda yakin ingin logout?',
+            'Konfirmasi Logout',
+            () => {
+                localStorage.removeItem('token');
+                localStorage.removeItem('userRole');
+                localStorage.removeItem('username');
+                window.location.href = '/login.html';
+            },
+            {
+                confirmText: 'Ya, Logout',
+                cancelText: 'Batal',
+                showCloseButton: true
+            }
+        );
+    }
+
+    async function loadProducts() {
+        try {
+            const refreshBtn = document.querySelector('button[onclick="loadProducts()"]');
+            const originalText = refreshBtn.innerHTML;
+            refreshBtn.innerHTML = '<div class="loading-spinner"></div> Memuat...';
+            refreshBtn.disabled = true;
+
+            const tableBody = document.getElementById('stokTable');
+            tableBody.innerHTML = `
+                <tr>
+                    <td colspan="8" class="px-6 py-8 text-center">
+                        <div class="flex justify-center items-center">
+                            <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+                            <span class="ml-3 text-gray-600">Memuat data produk...</span>
+                        </div>
+                    </td>
+                </tr>
+            `;
+
+            const token = localStorage.getItem('token');
+            const response = await fetch('/api/products', {
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            });
+
+            const result = await response.json();
+
+            if (result.success) {
+                displayProducts(result.data);
+                updateStatistics(result.data);
+                
+                if (result.data.length === 0) {
+                    window.notificationSystem.info(
+                        'Belum ada produk yang terdaftar. Silakan tambah produk baru.',
+                        'Data Kosong',
+                        {
+                            showCloseButton: true,
+                            confirmText: 'Mengerti'
+                        }
+                    );
+                }
+            } else {
+                window.notificationSystem.error(
+                    'Gagal memuat data produk. Silakan refresh halaman.',
+                    'Error Memuat Data!',
+                    {
+                        showCloseButton: true,
+                        confirmText: 'Tutup'
+                    }
+                );
+            }
+        } catch (error) {
+            console.error('Error loading products:', error);
+            window.notificationSystem.error(
+                'Terjadi kesalahan saat memuat data produk. Periksa koneksi internet.',
+                'Error Jaringan!',
+                {
+                    showCloseButton: true,
+                    confirmText: 'Tutup'
+                }
+            );
+        } finally {
+            setTimeout(() => {
+                const refreshBtn = document.querySelector('button[onclick="loadProducts()"]');
+                refreshBtn.innerHTML = '🔄 Refresh Data';
+                refreshBtn.disabled = false;
+            }, 500);
+        }
+    }
+
+    function displayProducts(products) {
+        const tableBody = document.getElementById('stokTable');
+        tableBody.innerHTML = '';
+
+        if (products.length === 0) {
+            tableBody.innerHTML = `
+                <tr>
+                    <td colspan="8" class="px-6 py-12 text-center text-gray-500">
+                        <div class="flex flex-col items-center">
+                            <svg class="w-16 h-16 text-gray-300 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2M4 13h2m8-8V4a1 1 0 00-1-1h-2a1 1 0 00-1 1v1M9 7h6"></path>
+                            </svg>
+                            <p class="text-lg font-medium text-gray-500">Tidak ada produk</p>
+                            <p class="text-sm text-gray-400 mt-1">Klik "Tambah Produk" untuk menambahkan produk pertama</p>
+                        </div>
+                    </td>
+                </tr>
+            `;
+            return;
+        }
+
+        // Format number function untuk menyingkat angka
+        const formatNumber = (num) => {
+            if (num >= 1000000) {
+                return 'Rp ' + (num / 1000000).toFixed(1) + 'Jt';
+            } else if (num >= 1000) {
+                return 'Rp ' + (num / 1000).toFixed(1) + 'Rb';
+            }
+            return 'Rp ' + num.toString();
+        };
+
+        products.forEach(product => {
+            const keuntungan = product.harga_jual - product.harga_beli;
+            const persentaseKeuntungan = ((keuntungan / product.harga_beli) * 100).toFixed(1);
+            
+            let stokClass = 'stok-tinggi';
+            let stokText = product.stok.toString();
+
+            // Simplified stock display - only number with color coding
+            if (product.stok === 0) {
+                stokClass = 'stok-habis';
+                stokText += ' (Habis)';
+            } else if (product.stok <= 5) {
+                stokClass = 'stok-rendah';
+                stokText += ' (Menipis)';
+            } else if (product.stok <= 10) {
+                stokClass = 'stok-sedang';
+                stokText += ' (Cukup)';
+            } else {
+                stokClass = 'stok-tinggi';
+                stokText += ' (Aman)';
+            }
+
+            const row = document.createElement('tr');
+            row.className = 'hover:bg-gray-50 transition-colors duration-200';
+            row.innerHTML = `
+                <td class="px-2 py-2">
+                    <div class="product-name">
+                        <span class="table-content" title="${product.name}">${product.name}</span>
+                        ${product.is_featured ? '<span class="featured-badge" title="Featured in Slideshow">⭐</span>' : ''}
+                    </div>
+                </td>
+                <td class="px-2 py-2">
+                    <div class="table-content capitalize" title="${product.jenis.replace('_', ' ')}">
+                        ${product.jenis.replace('_', ' ')}
+                    </div>
+                </td>
+                <td class="px-2 py-2">
+                    <div class="table-content" title="${product.merk}">
+                        ${product.merk.charAt(0).toUpperCase() + product.merk.slice(1)}
+                    </div>
+                </td>
+                <td class="px-2 py-2 text-center">
+                    <span class="stok-indicator ${stokClass}">
+                        ${stokText}
+                    </span>
+                </td>
+                <td class="px-2 py-2">
+                    <span class="number-cell">${formatNumber(parseInt(product.harga_beli))}</span>
+                </td>
+                <td class="px-2 py-2">
+                    <span class="number-cell">${formatNumber(parseInt(product.harga_jual))}</span>
+                </td>
+                <td class="px-2 py-2">
+                    <div class="text-right">
+                        <span class="number-cell">${formatNumber(keuntungan)}</span>
+                        <span class="text-xs text-gray-500 block">${persentaseKeuntungan}%</span>
+                    </div>
+                </td>
+                <td class="px-2 py-2">
+                    <div class="action-buttons">
+                        <button onclick="toggleFeatured(${product.product_id}, ${product.is_featured})" 
+                                class="btn-featured ${product.is_featured ? 'active' : ''}" 
+                                title="${product.is_featured ? 'Hapus dari Slideshow' : 'Tambah ke Slideshow'}">
+                            ${product.is_featured ? '⭐' : '☆'}
+                            <span class="hidden sm:inline">${product.is_featured ? 'Featured' : 'Feature'}</span>
+                        </button>
+                        <button onclick="editProduct(${product.product_id})" class="btn-edit" title="Edit produk">
+                            ✏️<span class="hidden sm:inline"> Edit</span>
+                        </button>
+                        <button onclick="deleteProduct(${product.product_id})" class="btn-delete" title="Hapus produk">
+                            🗑️<span class="hidden sm:inline"> Hapus</span>
+                        </button>
+                    </div>
+                </td>
+            `;
+            tableBody.appendChild(row);
+        });
+    }
+
+    function updateStatistics(products) {
+        const totalProducts = products.length;
+        const safeStockProducts = products.filter(product => parseInt(product.stok) > 10).length;
+        const lowStockProducts = products.filter(product => {
+            const stok = parseInt(product.stok);
+            return stok >= 1 && stok <= 5;
+        }).length;
+        const outOfStockProducts = products.filter(product => parseInt(product.stok) === 0).length;
+        const featuredProducts = products.filter(product => product.is_featured).length;
+
+        document.getElementById('totalProducts').textContent = totalProducts;
+        document.getElementById('statsTotal').textContent = totalProducts;
+        document.getElementById('statsAvailable').textContent = safeStockProducts;
+        document.getElementById('statsLowStock').textContent = lowStockProducts;
+        document.getElementById('statsFeatured').textContent = featuredProducts;
+        document.getElementById('statsOutOfStock').textContent = outOfStockProducts;
+    }
+
+    async function toggleFeatured(productId, currentStatus) {
+        try {
+            const newStatus = !currentStatus;
+            const productName = await getProductName(productId);
+            
+            const actionText = newStatus ? 'menambahkan' : 'menghapus';
+            
+            window.notificationSystem.confirmDialog(
+                `Apakah Anda yakin ingin ${actionText} produk <strong>"${productName}"</strong> ${newStatus ? 'ke' : 'dari'} slideshow featured?`,
+                `Konfirmasi ${newStatus ? 'Featured' : 'Unfeature'} Produk`,
+                async () => {
+                    const token = localStorage.getItem('token');
+                    const response = await fetch(`/api/products/${productId}/featured`, {
+                        method: 'PUT',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${token}`
+                        },
+                        body: JSON.stringify({ is_featured: newStatus })
+                    });
+
+                    const result = await response.json();
+
+                    if (result.success) {
+                        window.notificationSystem.success(
+                            result.message,
+                            'Berhasil!',
+                            {
+                                showCloseButton: true,
+                                confirmText: 'Tutup',
+                                onClose: () => loadProducts()
+                            }
+                        );
+                    } else {
+                        window.notificationSystem.error(
+                            result.message,
+                            'Gagal!',
+                            {
+                                showCloseButton: true,
+                                confirmText: 'Tutup'
+                            }
+                        );
+                    }
+                },
+                {
+                    confirmText: newStatus ? 'Ya, Featured' : 'Ya, Hapus',
+                    cancelText: 'Batal',
+                    showCloseButton: true
+                }
+            );
+        } catch (error) {
+            console.error('Error toggling featured:', error);
+            window.notificationSystem.error(
+                'Terjadi kesalahan saat mengubah status featured.',
+                'Error!',
+                {
+                    showCloseButton: true,
+                    confirmText: 'Tutup'
+                }
+            );
+        }
+    }
+
+    async function deleteProduct(productId) {
+        const productName = await getProductName(productId);
+        
+        window.notificationSystem.confirmDialog(
+            `Apakah Anda yakin ingin menghapus produk <strong>"${productName}"</strong>? Tindakan ini tidak dapat dibatalkan.`,
+            'Konfirmasi Hapus Produk',
+            async () => {
+                try {
+                    const token = localStorage.getItem('token');
+                    const response = await fetch(`/api/products/${productId}`, {
+                        method: 'DELETE',
+                        headers: {
+                            'Authorization': `Bearer ${token}`
+                        }
+                    });
+
+                    const result = await response.json();
+
+                    if (result.success) {
+                        window.notificationSystem.success(
+                            `Produk <strong>"${productName}"</strong> berhasil dihapus dari sistem.`,
+                            'Produk Dihapus!',
+                            {
+                                showCloseButton: true,
+                                duration: 5000,
+                                confirmText: 'Tutup'
+                            }
+                        );
+                        loadProducts();
+                    } else {
+                        window.notificationSystem.error(
+                            result.message || `Gagal menghapus produk "${productName}".`,
+                            'Gagal Menghapus!',
+                            {
+                                showCloseButton: true,
+                                confirmText: 'Tutup'
+                            }
+                        );
+                    }
+                } catch (error) {
+                    console.error('Error deleting product:', error);
+                    window.notificationSystem.error(
+                        `Terjadi kesalahan saat menghapus produk "${productName}".`,
+                        'Error!',
+                        {
+                            showCloseButton: true,
+                            confirmText: 'Tutup'
+                        }
+                    );
+                }
+            },
+            {
+                confirmText: 'Ya, Hapus',
+                cancelText: 'Batal',
+                showCloseButton: true,
+                type: 'error'
+            }
+        );
+    }
+
+    async function getProductName(productId) {
+        try {
+            const token = localStorage.getItem('token');
+            const response = await fetch(`/api/products/${productId}`, {
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            });
+            const result = await response.json();
+            return result.success ? result.data.name : 'Produk';
+        } catch (error) {
+            return 'Produk';
+        }
+    }
+
+    function editProduct(productId) {
+        openEditProductModal(productId);
+    }
+
+    function setupEditModal() {
+        const modal = document.getElementById('editProductModal');
+        const closeBtn = document.getElementById('closeEditModal');
+        const cancelBtn = document.getElementById('cancelEdit');
+        const form = document.getElementById('editProductForm');
+
+        [closeBtn, cancelBtn].forEach(btn => {
+            btn.addEventListener('click', () => {
+                modal.classList.remove('show');
+            });
+        });
+
+        modal.addEventListener('click', (e) => {
+            if (e.target === modal) {
+                modal.classList.remove('show');
+            }
+        });
+
+        form.addEventListener('submit', handleEditProductSubmit);
+    }
+
+    async function openEditProductModal(productId) {
+        try {
+            const token = localStorage.getItem('token');
+            const response = await fetch(`/api/products/${productId}`, {
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            });
+
+            const result = await response.json();
+
+            if (result.success) {
+                const product = result.data;
+                const modal = document.getElementById('editProductModal');
+                
+                document.getElementById('editProductId').value = product.product_id;
+                document.getElementById('editNamaProduk').value = product.name;
+                document.getElementById('editJenisProduk').value = product.jenis;
+                document.getElementById('editMerkProduk').value = product.merk;
+                document.getElementById('editTipeProduk').value = product.tipe_model;
+                document.getElementById('editStok').value = product.stok;
+                document.getElementById('editHargaBeli').value = product.harga_beli;
+                document.getElementById('editHargaJual').value = product.harga_jual;
+
+                modal.classList.add('show');
+            } else {
+                throw new Error(result.message);
+            }
+        } catch (error) {
+            console.error('Error loading product data:', error);
+            window.notificationSystem.error(
+                'Gagal memuat data produk untuk diedit.',
+                'Error!',
+                {
+                    showCloseButton: true,
+                    confirmText: 'Tutup'
+                }
+            );
+        }
+    }
+
+    async function handleEditProductSubmit(event) {
+        event.preventDefault();
+        
+        const productId = document.getElementById('editProductId').value;
+        const formData = {
+            name: document.getElementById('editNamaProduk').value.trim(),
+            jenis: document.getElementById('editJenisProduk').value,
+            merk: document.getElementById('editMerkProduk').value,
+            tipe_model: document.getElementById('editTipeProduk').value.trim(),
+            stok: document.getElementById('editStok').value,
+            harga_beli: document.getElementById('editHargaBeli').value.replace(/\D/g, ''),
+            harga_jual: document.getElementById('editHargaJual').value.replace(/\D/g, '')
+        };
+
+        if (!formData.name || !formData.jenis || !formData.merk || !formData.tipe_model || 
+            !formData.stok || !formData.harga_beli || !formData.harga_jual) {
+            window.notificationSystem.warning(
+                'Semua field harus diisi',
+                'Form Tidak Lengkap',
+                {
+                    showCloseButton: true,
+                    confirmText: 'Mengerti'
+                }
+            );
+            return;
+        }
+
+        if (parseInt(formData.stok) < 0) {
+            window.notificationSystem.warning(
+                'Stok tidak boleh negatif',
+                'Stok Tidak Valid',
+                {
+                    showCloseButton: true,
+                    confirmText: 'Mengerti'
+                }
+            );
+            return;
+        }
+
+        const hargaBeli = parseInt(formData.harga_beli);
+        const hargaJual = parseInt(formData.harga_jual);
+        if (hargaJual < hargaBeli) {
+            window.notificationSystem.warning(
+                'Harga jual tidak boleh kurang dari harga beli',
+                'Harga Tidak Valid',
+                {
+                    showCloseButton: true,
+                    confirmText: 'Mengerti'
+                }
+            );
+            return;
+        }
+
+        const submitBtn = document.getElementById('submitEdit');
+        const originalText = submitBtn.textContent;
+        submitBtn.textContent = 'Menyimpan...';
+        submitBtn.disabled = true;
+
+        try {
+            const token = localStorage.getItem('token');
+            const response = await fetch(`/api/products/${productId}`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify(formData)
+            });
+
+            const result = await response.json();
+
+            if (result.success) {
+                window.notificationSystem.success(
+                    `Produk "${formData.name}" berhasil diperbarui.`,
+                    'Sukses!',
+                    {
+                        showCloseButton: true,
+                        confirmText: 'Tutup',
+                        duration: 3000,
+                        onClose: () => {
+                            document.getElementById('editProductModal').classList.remove('show');
+                            loadProducts();
+                        }
+                    }
+                );
+            } else {
+                window.notificationSystem.error(
+                    result.message || 'Gagal memperbarui produk.',
+                    'Error!',
+                    {
+                        showCloseButton: true,
+                        confirmText: 'Tutup'
+                    }
+                );
+            }
+        } catch (error) {
+            console.error('Error updating product:', error);
+            window.notificationSystem.error(
+                'Terjadi kesalahan saat memperbarui produk.',
+                'Error!',
+                {
+                    showCloseButton: true,
+                    confirmText: 'Tutup'
+                }
+            );
+        } finally {
+            submitBtn.textContent = originalText;
+            submitBtn.disabled = false;
+        }
+    }
+
+    function setupSearch() {
+        const searchInput = document.getElementById("searchInput");
+        searchInput.addEventListener("input", e => {
+            const value = e.target.value.toLowerCase();
+            let hasResults = false;
+            
+            document.querySelectorAll("#stokTable tr").forEach(row => {
+                const text = row.textContent.toLowerCase();
+                const isVisible = text.includes(value);
+                row.style.display = isVisible ? "" : "none";
+                
+                if (isVisible) hasResults = true;
+            });
+
+            const noResultsRow = document.getElementById('noResults');
+            if (!hasResults && value !== '') {
+                if (!noResultsRow) {
+                    const tableBody = document.getElementById('stokTable');
+                    const row = document.createElement('tr');
+                    row.id = 'noResults';
+                    row.innerHTML = `
+                        <td colspan="8" class="px-6 py-12 text-center text-gray-500">
+                            <div class="flex flex-col items-center">
+                                <svg class="w-16 h-16 text-gray-300 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+                                </svg>
+                                <p class="text-lg font-medium">Tidak ada hasil ditemukan</p>
+                                <p class="text-sm">Coba gunakan kata kunci yang berbeda</p>
+                            </div>
+                        </td>
+                    `;
+                    tableBody.appendChild(row);
+                }
+            } else if (noResultsRow) {
+                noResultsRow.remove();
+            }
+        });
+    }
+
+    function formatHarga(input) {
+        let value = input.value.replace(/\D/g, '');
+        if (value) {
+            value = parseInt(value).toLocaleString('id-ID');
+        }
+        input.value = value;
+    }
+
+    function removeFormat(input) {
+        input.value = input.value.replace(/\D/g, '');
+    }
+  </script>
+</head>
+<body class="bg-gray-50">
+
+  <!-- Burger Menu Button -->
+  <button class="burger-menu" id="burgerMenu">
+    <span></span>
+    <span></span>
+    <span></span>
+  </button>
+
+  <div class="flex min-h-screen">
+    <!-- Main Content -->
+    <main class="flex-1 p-8 main-header">
+      <div class="flex justify-between items-center mb-6">
+        <div>
+          <h2 class="text-3xl font-bold text-gray-800">Manajemen Stok Produk</h2>
+          <p class="text-gray-600 mt-1">Kelola inventaris produk Toko Global Elektronik</p>
+        </div>
+        <div class="flex items-center gap-4">
+          <span class="text-sm text-gray-600 bg-white px-3 py-2 rounded-lg border shadow-sm">
+            📊 Total: <span id="totalProducts" class="font-semibold">0</span> produk
+          </span>
+          <a href="./tambahprodukbaru.html"
+            class="bg-blue-600 text-white py-3 px-6 rounded-lg hover:bg-blue-700 font-semibold transition-all duration-200 shadow-lg hover:shadow-xl transform hover:scale-105">
+            ➕ Tambah Produk
+          </a>
+        </div>
+      </div>
+
+      <div class="flex flex-col md:flex-row justify-between items-center mb-6 gap-4">
+        <div class="w-full md:w-2/3">
+          <input id="searchInput" type="text"
+            placeholder="🔍 Cari berdasarkan nama, jenis, atau merk..."
+            class="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition text-sm shadow-sm">
+        </div>
+        <div class="w-full md:w-1/3 flex justify-end">
+          <button onclick="loadProducts()" 
+                  class="bg-green-600 text-white py-3 px-6 rounded-lg hover:bg-green-700 font-semibold transition-all duration-200 shadow-lg hover:shadow-xl transform hover:scale-105">
+            🔄 Refresh Data
+          </button>
+        </div>
+      </div>
+
+      <div class="bg-white rounded-lg shadow-lg overflow-hidden mb-8">
+        <div class="table-container">
+          <table class="compact-table">
+            <thead>
+              <tr>
+                <th class="col-nama">Nama Produk</th>
+                <th class="col-jenis">Jenis</th>
+                <th class="col-merk">Merk</th>
+                <th class="col-stok">Stok</th>
+                <th class="col-harga-beli">Harga Beli</th>
+                <th class="col-harga-jual">Harga Jual</th>
+                <th class="col-keuntungan">Keuntungan</th>
+                <th class="col-aksi">Aksi</th>
+              </tr>
+            </thead>
+            <tbody id="stokTable">
+              <!-- Data akan diisi oleh JavaScript -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Statistics Cards -->
+      <div class="grid grid-cols-1 md:grid-cols-5 gap-4">
+        <div class="bg-white p-6 rounded-lg shadow-md border-l-4 border-blue-500">
+          <div class="flex items-center">
+            <div class="bg-blue-100 p-3 rounded-lg">
+              <svg class="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"></path>
+              </svg>
+            </div>
+            <div class="ml-4">
+              <p class="text-sm font-medium text-gray-600">Total Produk</p>
+              <p class="text-2xl font-bold text-gray-900" id="statsTotal">0</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="bg-white p-6 rounded-lg shadow-md border-l-4 border-green-500">
+          <div class="flex items-center">
+            <div class="bg-green-100 p-3 rounded-lg">
+              <svg class="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+              </svg>
+            </div>
+            <div class="ml-4">
+              <p class="text-sm font-medium text-gray-600">Stok Aman</p>
+              <p class="text-2xl font-bold text-gray-900" id="statsAvailable">0</p>
+              <p class="text-xs text-gray-500 mt-1">Stok > 10</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="bg-white p-6 rounded-lg shadow-md border-l-4 border-yellow-500">
+          <div class="flex items-center">
+            <div class="bg-yellow-100 p-3 rounded-lg">
+              <svg class="w-6 h-6 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+              </svg>
+            </div>
+            <div class="ml-4">
+              <p class="text-sm font-medium text-gray-600">Stok Menipis</p>
+              <p class="text-2xl font-bold text-gray-900" id="statsLowStock">0</p>
+              <p class="text-xs text-gray-500 mt-1">Stok 1-5</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="bg-white p-6 rounded-lg shadow-md border-l-4 border-red-500">
+          <div class="flex items-center">
+            <div class="bg-red-100 p-3 rounded-lg">
+              <svg class="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
+              </svg>
+            </div>
+            <div class="ml-4">
+              <p class="text-sm font-medium text-gray-600">Stok Habis</p>
+              <p class="text-2xl font-bold text-gray-900" id="statsOutOfStock">0</p>
+              <p class="text-xs text-gray-500 mt-1">Stok = 0</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="bg-white p-6 rounded-lg shadow-md border-l-4 border-purple-500">
+          <div class="flex items-center">
+            <div class="bg-purple-100 p-3 rounded-lg">
+              <svg class="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z"></path>
+              </svg>
+            </div>
+            <div class="ml-4">
+              <p class="text-sm font-medium text-gray-600">Featured</p>
+              <p class="text-2xl font-bold text-gray-900" id="statsFeatured">0</p>
+              <p class="text-xs text-gray-500 mt-1">Di slideshow</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <!-- Mobile Sidebar -->
+  <div class="mobile-sidebar" id="mobileSidebar">
+    <div class="p-6 text-center border-b border-gray-700">
+      <h1 class="text-2xl font-bold">Admin Panel</h1>
+      <p class="text-sm text-gray-300 mt-1" id="mobileWelcomeUser">Welcome, Admin!</p>
+    </div>
+
+    <nav class="flex-1 p-4 space-y-2">
+      <a href="./admin.html" class="sidebar-item active">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path>
+        </svg>
+        <span>Manajemen Stok</span>
+      </a>
+
+      <a href="./manajemenuser.html" class="sidebar-item">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z"></path>
+        </svg>
+        <span>Manajemen User</span>
+      </a>
+
+      <a href="../staff/staff.html" class="sidebar-item">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"></path>
+        </svg>
+        <span>Kelola Penjualan</span>
+      </a>
+
+      <button onclick="logout()" class="sidebar-item w-full text-left">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path>
+        </svg>
+        <span>Logout</span>
+      </button>
+    </nav>
+  </div>
+
+  <!-- Overlay -->
+  <div class="mobile-sidebar-overlay" id="sidebarOverlay"></div>
+
+  <!-- Edit Product Modal -->
+  <div id="editProductModal" class="edit-product-modal">
+    <div class="bg-white rounded-lg shadow-xl w-full max-w-2xl mx-4">
+      <div class="flex justify-between items-center p-6 border-b">
+        <h3 class="text-xl font-semibold text-gray-800">Edit Produk</h3>
+        <button id="closeEditModal" class="text-gray-400 hover:text-gray-600">
+          <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+          </svg>
+        </button>
+      </div>
+      
+      <form id="editProductForm" class="p-6">
+        <input type="hidden" id="editProductId">
+        
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div class="md:col-span-2">
+            <label class="block text-sm font-medium text-gray-700 mb-2">Nama Produk *</label>
+            <input type="text" id="editNamaProduk" required 
+                   class="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition">
+          </div>
+
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-2">Jenis Produk *</label>
+            <select id="editJenisProduk" required 
+                    class="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition">
+              <option value="">Pilih jenis produk</option>
+              <option value="magic_com">Magic Com</option>
+              <option value="kulkas">Kulkas</option>
+              <option value="stand_fan">Stand Fan</option>
+              <option value="desk_fan">Desk Fan</option>
+              <option value="wall_fan">Wall Fan</option>
+              <option value="setrika">Setrika</option>
+              <option value="blender">Blender</option>
+              <option value="kompor">Kompor</option>
+              <option value="regulator">Regulator</option>
+              <option value="chopper">Chopper</option>
+              <option value="tv">TV</option>
+              <option value="ac">AC</option>
+              <option value="mesin_cuci_2_tabung">Mesin Cuci 2 tabung</option>
+              <option value="dispenser">Dispenser</option>
+              <option value="oven">Oven</option>
+              <option value="microwave">Microwave</option>
+              <option value="air_fryer">Air Fryer</option>
+              <option value="mesin_cuci_1_tabung">Mesin Cuci 1 tabung</option>
+              <option value="kipas_jepit">Kipas Jepit</option>
+              <option value="celling_fan">Celling Fan</option>
+              <option value="speaker">Speaker</option>
+            </select>
+          </div>
+          
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-2">Merk Produk *</label>
+            <select id="editMerkProduk" required 
+                    class="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition">
+              <option value="">Pilih merk produk</option>
+              <option value="miyako">Miyako</option>
+              <option value="cosmos">Cosmos</option>
+              <option value="maspion">Maspion</option>
+              <option value="rinnai">Rinnai</option>
+              <option value="philips">Philips</option>
+              <option value="yong_ma">Yong Ma</option>
+              <option value="turbo">Turbo</option>
+              <option value="sharp">Sharp</option>
+              <option value="uchida">Uchida</option>
+              <option value="polytron">Polytron</option>
+              <option value="samsung">Samsung</option>
+              <option value="panasonic">Panasonic</option>
+              <option value="lg">LG</option>
+            </select>
+          </div>
+          
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-2">Tipe / Model Produk *</label>
+            <input type="text" id="editTipeProduk" required 
+                   class="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition">
+          </div>
+          
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-2">Jumlah Stok *</label>
+            <input type="number" id="editStok" min="0" required 
+                   class="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition">
+          </div>
+          
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-2">Harga Beli (Rp) *</label>
+            <input type="text" id="editHargaBeli" required 
+                   onblur="formatHarga(this)" onfocus="removeFormat(this)"
+                   class="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition">
+          </div>
+          
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-2">Harga Jual (Rp) *</label>
+            <input type="text" id="editHargaJual" required 
+                   onblur="formatHarga(this)" onfocus="removeFormat(this)"
+                   class="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition">
+          </div>
+        </div>
+        
+        <div class="flex justify-end gap-3 mt-6 pt-6 border-t">
+          <button type="button" id="cancelEdit" 
+                  class="px-6 py-3 bg-gray-300 text-gray-700 rounded-lg hover:bg-gray-400 font-semibold transition">
+            Batal
+          </button>
+          <button type="submit" id="submitEdit"
+                  class="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-semibold transition">
+            💾 Simpan Perubahan
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Load notification.js -->
+  <script src="../js/notification.js"></script>
+</body>
+</html>

@@ -1,0 +1,633 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tambah Produk Baru - Admin Panel</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="../css/notification.css">
+    <style>
+        /* ===== BURGER MENU STYLES ===== */
+        .burger-menu {
+          display: flex;
+          flex-direction: column;
+          justify-content: space-between;
+          width: 30px;
+          height: 21px;
+          background: transparent;
+          border: none;
+          cursor: pointer;
+          padding: 0;
+          position: fixed;
+          top: 20px;
+          left: 20px;
+          z-index: 1000;
+        }
+
+        .burger-menu span {
+          display: block;
+          height: 3px;
+          width: 100%;
+          background-color: #374151;
+          border-radius: 2px;
+          transition: all 0.3s ease;
+        }
+
+        .burger-menu.active span:nth-child(1) {
+          transform: rotate(45deg) translate(6px, 6px);
+          background-color: white;
+        }
+
+        .burger-menu.active span:nth-child(2) {
+          opacity: 0;
+        }
+
+        .burger-menu.active span:nth-child(3) {
+          transform: rotate(-45deg) translate(6px, -6px);
+          background-color: white;
+        }
+
+        /* Mobile Sidebar Styles */
+        .mobile-sidebar {
+          position: fixed;
+          top: 0;
+          left: -100%;
+          width: 280px;
+          height: 100vh;
+          background-color: #1f2937;
+          transition: left 0.3s ease;
+          z-index: 999;
+          overflow-y: auto;
+        }
+
+        .mobile-sidebar.active {
+          left: 0;
+        }
+
+        .mobile-sidebar-overlay {
+          position: fixed;
+          top: 0;
+          left: 0;
+          width: 100%;
+          height: 100%;
+          background-color: rgba(0, 0, 0, 0.5);
+          z-index: 998;
+          display: none;
+        }
+
+        .mobile-sidebar-overlay.active {
+          display: block;
+        }
+
+        /* Sidebar item styles */
+        .sidebar-item {
+          display: flex;
+          align-items: center;
+          gap: 0.75rem;
+          padding: 0.75rem 1rem;
+          border-radius: 0.5rem;
+          transition: all 0.2s;
+          text-decoration: none;
+          color: white;
+          cursor: pointer;
+        }
+
+        .sidebar-item:hover {
+          background-color: #374151;
+        }
+
+        /* Main content adjustments */
+        main {
+          margin-left: 0 !important;
+          width: 100%;
+        }
+
+        .main-header {
+          padding-left: 60px !important;
+        }
+
+        /* Responsive adjustments */
+        @media (max-width: 768px) {
+          .container {
+            padding-left: 1rem;
+            padding-right: 1rem;
+          }
+        }
+    </style>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const token = localStorage.getItem('token');
+            const userRole = localStorage.getItem('userRole');
+            
+            if (!token || userRole !== 'admin') {
+                window.notificationSystem.error(
+                    'Anda harus login sebagai admin untuk mengakses halaman ini',
+                    'Akses Ditolak!',
+                    {
+                        duration: 3000,
+                        onClose: () => {
+                            window.location.href = '/login.html';
+                        }
+                    }
+                );
+                return;
+            }
+
+            initializeFilePreview();
+            setupBurgerMenu();
+        });
+
+        function setupBurgerMenu() {
+          const burgerMenu = document.getElementById('burgerMenu');
+          const mobileSidebar = document.getElementById('mobileSidebar');
+          const sidebarOverlay = document.getElementById('sidebarOverlay');
+
+          burgerMenu.addEventListener('click', function() {
+            this.classList.toggle('active');
+            mobileSidebar.classList.toggle('active');
+            sidebarOverlay.classList.toggle('active');
+          });
+
+          sidebarOverlay.addEventListener('click', function() {
+            burgerMenu.classList.remove('active');
+            mobileSidebar.classList.remove('active');
+            this.classList.remove('active');
+          });
+
+          const sidebarLinks = mobileSidebar.querySelectorAll('a, button');
+          sidebarLinks.forEach(link => {
+            link.addEventListener('click', () => {
+              burgerMenu.classList.remove('active');
+              mobileSidebar.classList.remove('active');
+              sidebarOverlay.classList.remove('active');
+            });
+          });
+        }
+      
+        function logout() {
+            window.notificationSystem.confirmDialog(
+                'Apakah Anda yakin ingin logout?',
+                'Konfirmasi Logout',
+                () => {
+                    localStorage.removeItem('token');
+                    localStorage.removeItem('userRole');
+                    localStorage.removeItem('username');
+                    window.location.href = '/login.html';
+                },
+                {
+                    confirmText: 'Ya, Logout',
+                    showCloseButton: true
+                }
+            );
+        }
+
+        function initializeFilePreview() {
+            const fileInput = document.getElementById('gambar_produk');
+            const preview = document.getElementById('imagePreview');
+            const fileInfo = document.getElementById('fileInfo');
+            const removeBtn = document.getElementById('removeImageBtn');
+            
+            fileInput.addEventListener('change', function(e) {
+                const file = e.target.files[0];
+                
+                if (file) {
+                    if (file.size > 2 * 1024 * 1024) {
+                        window.notificationSystem.error(
+                            'Ukuran file terlalu besar! Maksimal 2MB.',
+                            'Error Upload'
+                        );
+                        fileInput.value = '';
+                        preview.classList.add('hidden');
+                        fileInfo.classList.add('hidden');
+                        removeBtn.classList.add('hidden');
+                        return;
+                    }
+                    
+                    const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
+                    if (!allowedTypes.includes(file.type)) {
+                        window.notificationSystem.error(
+                            'Format file tidak didukung! Gunakan JPG, PNG, atau WEBP.',
+                            'Format Tidak Didukung'
+                        );
+                        fileInput.value = '';
+                        preview.classList.add('hidden');
+                        fileInfo.classList.add('hidden');
+                        removeBtn.classList.add('hidden');
+                        return;
+                    }
+                    
+                    const reader = new FileReader();
+                    reader.onload = function(e) {
+                        preview.src = e.target.result;
+                        preview.classList.remove('hidden');
+                        fileInfo.textContent = `File: ${file.name} (${(file.size / 1024).toFixed(2)} KB)`;
+                        fileInfo.classList.remove('hidden');
+                        removeBtn.classList.remove('hidden');
+                    };
+                    reader.readAsDataURL(file);
+                } else {
+                    preview.classList.add('hidden');
+                    fileInfo.classList.add('hidden');
+                    removeBtn.classList.add('hidden');
+                }
+            });
+        }
+
+        async function handleSubmit(event) {
+            event.preventDefault();
+            
+            if (!validateFormComplete()) {
+                window.notificationSystem.warning(
+                    'Harap lengkapi semua field yang wajib diisi',
+                    'Form Tidak Lengkap'
+                );
+                return;
+            }
+
+            const hargaBeli = parseInt(document.getElementById('harga_beli').value.replace(/\D/g, ''));
+            const hargaJual = parseInt(document.getElementById('harga_jual').value.replace(/\D/g, ''));
+            
+            if (hargaJual < hargaBeli) {
+                window.notificationSystem.warning(
+                    'Harga jual tidak boleh kurang dari harga beli',
+                    'Harga Tidak Valid'
+                );
+                return;
+            }
+
+            const submitBtn = document.querySelector('button[type="submit"]');
+            const originalText = submitBtn.textContent;
+            submitBtn.textContent = 'Menyimpan...';
+            submitBtn.disabled = true;
+
+            try {
+                const formData = new FormData();
+                
+                formData.append('name', document.getElementById('nama_produk').value.trim());
+                formData.append('jenis', document.getElementById('jenis_produk').value);
+                formData.append('merk', document.getElementById('merk_produk').value);
+                formData.append('tipe_model', document.getElementById('tipe_produk').value.trim());
+                formData.append('stok', document.getElementById('stok').value);
+                formData.append('harga_beli', document.getElementById('harga_beli').value.replace(/\D/g, ''));
+                formData.append('harga_jual', document.getElementById('harga_jual').value.replace(/\D/g, ''));
+
+                const fileInput = document.getElementById('gambar_produk');
+                if (fileInput.files[0]) {
+                    formData.append('gambar', fileInput.files[0]);
+                }
+
+                console.log('Mengirim data produk...');
+
+                const token = localStorage.getItem('token');
+                const response = await fetch('/api/products', {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: formData
+                });
+
+                const result = await response.json();
+                console.log('Response dari server:', result);
+
+                if (result.success) {
+                    window.notificationSystem.success(
+                        'Produk berhasil ditambahkan ke dalam sistem! Anda akan diarahkan ke halaman manajemen stok.', 
+                        'Sukses!',
+                        {
+                            duration: 3000,
+                            onClose: () => {
+                                window.location.href = 'admin.html';
+                            }
+                        }
+                    );
+                } else {
+                    window.notificationSystem.error(
+                        result.message || 'Terjadi kesalahan saat menambahkan produk. Silakan coba lagi.',
+                        'Gagal Menambahkan Produk!'
+                    );
+                }
+            } catch (error) {
+                console.error('Error adding product:', error);
+                window.notificationSystem.error(
+                    'Terjadi kesalahan jaringan. Periksa koneksi internet Anda dan coba lagi.',
+                    'Error Jaringan!'
+                );
+            } finally {
+                submitBtn.textContent = originalText;
+                submitBtn.disabled = false;
+            }
+        }
+
+        function validateFormComplete() {
+            const nama = document.getElementById('nama_produk').value.trim();
+            const jenis = document.getElementById('jenis_produk').value;
+            const merk = document.getElementById('merk_produk').value;
+            const tipe = document.getElementById('tipe_produk').value.trim();
+            const stok = document.getElementById('stok').value;
+            const hargaBeli = document.getElementById('harga_beli').value;
+            const hargaJual = document.getElementById('harga_jual').value;
+            
+            return nama && jenis && merk && tipe && stok && hargaBeli && hargaJual;
+        }
+
+        function formatHarga(input) {
+            let value = input.value.replace(/\D/g, '');
+            if (value) {
+                value = parseInt(value).toLocaleString('id-ID');
+            }
+            input.value = value;
+        }
+
+        function removeFormat(input) {
+            input.value = input.value.replace(/\D/g, '');
+        }
+
+        function validateForm() {
+            const nama = document.getElementById('nama_produk').value;
+            const jenis = document.getElementById('jenis_produk').value;
+            const merk = document.getElementById('merk_produk').value;
+            const tipe = document.getElementById('tipe_produk').value;
+            const stok = document.getElementById('stok').value;
+            const hargaBeli = document.getElementById('harga_beli').value;
+            const hargaJual = document.getElementById('harga_jual').value;
+            
+            const submitBtn = document.querySelector('button[type="submit"]');
+            const isValid = nama && jenis && merk && tipe && stok && hargaBeli && hargaJual;
+            
+            submitBtn.disabled = !isValid;
+            submitBtn.classList.toggle('opacity-50', !isValid);
+            submitBtn.classList.toggle('cursor-not-allowed', !isValid);
+        }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            const inputs = document.querySelectorAll('input, select');
+            inputs.forEach(input => {
+                input.addEventListener('input', validateForm);
+                
+                if (input.id === 'harga_beli' || input.id === 'harga_jual') {
+                    input.addEventListener('blur', () => formatHarga(input));
+                    input.addEventListener('focus', () => removeFormat(input));
+                }
+            });
+            
+            const stokInput = document.getElementById('stok');
+            stokInput.addEventListener('change', function() {
+                if (this.value < 0) {
+                    this.value = 0;
+                    window.notificationSystem.warning(
+                        'Stok tidak boleh negatif',
+                        'Peringatan'
+                    );
+                }
+            });
+            
+            const hargaJualInput = document.getElementById('harga_jual');
+            const hargaBeliInput = document.getElementById('harga_beli');
+            
+            hargaJualInput.addEventListener('blur', function() {
+                const hargaBeli = parseInt(hargaBeliInput.value.replace(/\D/g, '') || 0);
+                const hargaJual = parseInt(this.value.replace(/\D/g, '') || 0);
+                
+                if (hargaJual > 0 && hargaBeli > 0 && hargaJual < hargaBeli) {
+                    window.notificationSystem.warning(
+                        'Harga jual tidak boleh kurang dari harga beli',
+                        'Peringatan Harga'
+                    );
+                }
+            });
+            
+            validateForm();
+        });
+
+        function removeImage() {
+            const fileInput = document.getElementById('gambar_produk');
+            const preview = document.getElementById('imagePreview');
+            const fileInfo = document.getElementById('fileInfo');
+            const removeBtn = document.getElementById('removeImageBtn');
+            
+            fileInput.value = '';
+            preview.classList.add('hidden');
+            fileInfo.classList.add('hidden');
+            removeBtn.classList.add('hidden');
+            
+            window.notificationSystem.info(
+                'Gambar produk telah dihapus',
+                'Gambar Dihapus'
+            );
+        }
+
+        function resetForm() {
+            window.notificationSystem.confirmDialog(
+                'Apakah Anda yakin ingin mengosongkan semua field? Semua data yang telah diinput akan hilang.',
+                'Reset Form',
+                () => {
+                    document.getElementById('productForm').reset();
+                    removeImage();
+                    validateForm();
+                    window.notificationSystem.success(
+                        'Form berhasil direset',
+                        'Reset Berhasil'
+                    );
+                },
+                {
+                    confirmText: 'Ya, Reset',
+                    showCloseButton: true
+                }
+            );
+        }
+    </script>
+</head>
+<body class="bg-gray-100">
+
+    <!-- Burger Menu Button -->
+    <button class="burger-menu" id="burgerMenu">
+      <span></span>
+      <span></span>
+      <span></span>
+    </button>
+
+    <div class="flex min-h-screen">
+        <main class="flex-1 p-8 main-header">
+            <div class="flex justify-between items-center mb-6">
+                <div>
+                    <h2 class="text-3xl font-bold text-gray-800">Tambah Produk Baru</h2>
+                    <p class="text-sm text-gray-500 mt-1">
+                        <a href="admin.html" class="text-blue-600 hover:underline">Manajemen Stok</a> / Tambah Produk
+                    </p>
+                </div>
+                <button onclick="resetForm()" class="bg-gray-500 text-white py-2 px-4 rounded-lg hover:bg-gray-600 font-semibold transition">
+                    Reset Form
+                </button>
+            </div>
+            
+            <div class="bg-white p-8 rounded-lg shadow-md">
+                <form onsubmit="handleSubmit(event)" id="productForm" enctype="multipart/form-data">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div class="md:col-span-2">
+                            <label for="nama_produk" class="block text-sm font-medium text-gray-700 mb-2">
+                                Nama Produk *
+                                <span class="text-xs text-gray-500 font-normal">(Contoh: Dispenser Miyako 185-H)</span>
+                            </label>
+                            <input type="text" id="nama_produk" name="nama_produk" required 
+                                   placeholder="Masukkan nama produk lengkap" 
+                                   class="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition">
+                        </div>
+
+                        <div>
+                            <label for="jenis_produk" class="block text-sm font-medium text-gray-700 mb-2">Jenis Produk *</label>
+                            <select id="jenis_produk" name="jenis_produk" required 
+                                    class="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition">
+                                <option value="" disabled selected>Pilih jenis produk</option>
+                                <option value="magic_com">Magic Com</option>
+                                <option value="kulkas">Kulkas</option>
+                                <option value="stand_fan">Stand Fan</option>
+                                <option value="desk_fan">Desk Fan</option>
+                                <option value="wall_fan">Wall Fan</option>
+                                <option value="setrika">Setrika</option>
+                                <option value="blender">Blender</option>
+                                <option value="kompor">Kompor</option>
+                                <option value="regulator">Regulator</option>
+                                <option value="chopper">Chopper</option>
+                                <option value="tv">TV</option>
+                                <option value="ac">AC</option>
+                                <option value="mesin_cuci_2_tabung">Mesin Cuci 2 tabung</option>
+                                <option value="dispenser">Dispenser</option>
+                                <option value="oven">Oven</option>
+                                <option value="microwave">Microwave</option>
+                                <option value="air_fryer">Air Fryer</option>
+                                <option value="mesin_cuci_1_tabung">Mesin Cuci 1 tabung</option>
+                                <option value="kipas_jepit">Kipas Jepit</option>
+                                <option value="celling_fan">Celling Fan</option>
+                                <option value="speaker">Speaker</option>
+                            </select>
+                        </div>
+                        
+                        <div>
+                            <label for="merk_produk" class="block text-sm font-medium text-gray-700 mb-2">Merk Produk *</label>
+                            <select id="merk_produk" name="merk_produk" required 
+                                    class="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition">
+                                <option value="" disabled selected>Pilih merk produk</option>
+                                <option value="miyako">Miyako</option>
+                                <option value="cosmos">Cosmos</option>
+                                <option value="maspion">Maspion</option>
+                                <option value="rinnai">Rinnai</option>
+                                <option value="philips">Philips</option>
+                                <option value="yong_ma">Yong Ma</option>
+                                <option value="turbo">Turbo</option>
+                                <option value="sharp">Sharp</option>
+                                <option value="uchida">Uchida</option>
+                                <option value="polytron">Polytron</option>
+                                <option value="samsung">Samsung</option>
+                                <option value="panasonic">Panasonic</option>
+                                <option value="lg">LG</option>
+                            </select>
+                        </div>
+                        
+                         <div>
+                            <label for="tipe_produk" class="block text-sm font-medium text-gray-700 mb-2">
+                                Tipe / Model Produk *
+                                <span class="text-xs text-gray-500 font-normal">(Contoh: PRB-18ANR-RD)</span>
+                            </label>
+                            <input type="text" id="tipe_produk" name="tipe_produk" required 
+                                   placeholder="Masukkan tipe/model produk" 
+                                   class="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition">
+                        </div>
+                        
+                         <div>
+                            <label for="stok" class="block text-sm font-medium text-gray-700 mb-2">Jumlah Stok *</label>
+                            <input type="number" id="stok" name="stok" min="0" required 
+                                   placeholder="0" 
+                                   class="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition">
+                        </div>
+                        
+                        <div>
+                            <label for="harga_beli" class="block text-sm font-medium text-gray-700 mb-2">Harga Beli (Rp) *</label>
+                            <input type="text" id="harga_beli" name="harga_beli" required 
+                                   placeholder="1000000" 
+                                   class="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
+                                   onblur="formatHarga(this)" onfocus="removeFormat(this)">
+                        </div>
+                        
+                        <div>
+                            <label for="harga_jual" class="block text-sm font-medium text-gray-700 mb-2">Harga Jual (Rp) *</label>
+                            <input type="text" id="harga_jual" name="harga_jual" required 
+                                   placeholder="1300000" 
+                                   class="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
+                                   onblur="formatHarga(this)" onfocus="removeFormat(this)">
+                        </div>
+                        
+                        <div class="md:col-span-2">
+                            <label for="gambar_produk" class="block text-sm font-medium text-gray-700 mb-2">Gambar Produk</label>
+                            <input type="file" id="gambar_produk" name="gambar_produk" 
+                                   accept=".jpg,.jpeg,.png,.webp"
+                                   class="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 transition">
+                            <p class="text-xs text-gray-500 mt-1">Format: JPG, PNG, WEBP. Ukuran maks: 2MB.</p>
+                            
+                            <!-- Image Preview -->
+                            <div id="imagePreviewContainer" class="mt-4">
+                                <img id="imagePreview" class="hidden max-w-xs max-h-48 rounded-lg shadow-md border object-contain">
+                                <div id="fileInfo" class="hidden text-sm text-gray-600 mt-2 p-2 bg-gray-50 rounded"></div>
+                                <button type="button" id="removeImageBtn" onclick="removeImage()" class="hidden mt-2 bg-red-500 text-white px-3 py-1 rounded text-sm hover:bg-red-600 transition">
+                                    ❌ Hapus Gambar
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="mt-8 pt-6 border-t border-gray-200 flex justify-end gap-4">
+                        <a href="admin.html" class="bg-gray-200 text-gray-700 py-2 px-6 rounded-lg hover:bg-gray-300 font-semibold transition">Batal</a>
+                        <button type="submit" class="bg-blue-600 text-white py-2 px-6 rounded-lg hover:bg-blue-700 font-semibold transition disabled:opacity-50 disabled:cursor-not-allowed">
+                            💾 Simpan Produk
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </main>
+    </div>
+
+    <!-- Mobile Sidebar -->
+    <div class="mobile-sidebar" id="mobileSidebar">
+      <div class="p-6 text-center border-b border-gray-700">
+        <h1 class="text-2xl font-bold">Admin Panel</h1>
+        <p class="text-sm text-gray-300 mt-1" id="mobileWelcomeUser">Welcome, Admin!</p>
+      </div>
+
+      <nav class="flex-1 p-4 space-y-2">
+        <a href="./admin.html" class="sidebar-item">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path>
+          </svg>
+          <span>Manajemen Stok</span>
+        </a>
+
+        <a href="./manajemenuser.html" class="sidebar-item">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z"></path>
+          </svg>
+          <span>Manajemen User</span>
+        </a>
+
+        <a href="../staff/staff.html" class="sidebar-item">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"></path>
+          </svg>
+          <span>Kelola Penjualan</span>
+        </a>
+
+        <button onclick="logout()" class="sidebar-item w-full text-left">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path>
+          </svg>
+          <span>Logout</span>
+        </button>
+      </nav>
+    </div>
+
+    <!-- Overlay -->
+    <div class="mobile-sidebar-overlay" id="sidebarOverlay"></div>
+
+    <!-- Load notification.js -->
+    <script src="../js/notification.js"></script>
+</body>
+</html>
