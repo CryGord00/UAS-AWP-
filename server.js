@@ -660,6 +660,7 @@ app.get('/api/products', authenticateToken, async (req, res) => {
             error: error.message // Tambahkan ini untuk debug
         });
     }
+});
 
 // Add new product
 app.post('/api/products', authenticateToken, requireAdmin, upload.single('gambar'), async (req, res) => {
