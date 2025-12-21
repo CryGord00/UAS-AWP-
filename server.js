@@ -228,34 +228,39 @@ app.post('/api/login', async (req, res) => {
 // ==================== FEATURED PRODUCTS ROUTES ====================
 
 // Get featured products untuk slideshow
-app.get('/api/products/featured', authenticateToken, async (req, res) => {
-  try {
-    console.log('⭐ Fetching featured products for slideshow');
-    
-    const query = `
-      SELECT product_id, name, jenis, merk, tipe_model, harga_jual, gambar 
-      FROM products 
-      WHERE is_featured = TRUE 
-      ORDER BY product_id DESC 
-      LIMIT 5
-    `;
-    
-    const featuredProducts = await dbManager.executeQuery(query);
-    
-    console.log(`✅ Retrieved ${featuredProducts.length} featured products`);
-    
-    res.json({
-      success: true,
-      message: `Berhasil mengambil ${featuredProducts.length} produk featured.`,
-      data: featuredProducts
-    });
-  } catch (error) {
-    console.error('❌ Get featured products error:', error);
-    res.status(500).json({ 
-      success: false,
-      message: 'Terjadi kesalahan saat mengambil produk featured.' 
-    });
-  }
+app.get('/api/products/:id', authenticateToken, async (req, res, next) => {
+    try {
+        const productId = req.params.id;
+        
+        // Cek jika ID adalah "featured", lempar ke route berikutnya agar tidak bentrok
+        if (productId === 'featured') {
+            return next();
+        }
+
+        console.log('🔍 Request Data Edit Produk ID:', productId);
+
+        const query = 'SELECT * FROM products WHERE product_id = ?';
+        const products = await dbManager.executeQuery(query, [productId]);
+
+        if (products.length === 0) {
+            return res.status(404).json({
+                success: false,
+                message: 'Produk tidak ditemukan di database.'
+            });
+        }
+
+        res.json({
+            success: true,
+            data: products[0]
+        });
+
+    } catch (error) {
+        console.error('❌ Error Server Edit Produk:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Server error saat mengambil data edit.'
+        });
+    }
 });
 
 // Toggle featured status (admin only)
