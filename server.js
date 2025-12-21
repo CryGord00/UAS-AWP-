@@ -623,7 +623,7 @@ app.get('/api/products', authenticateToken, async (req, res) => {
         const limitNum = parseInt(limit) || 50;
         const offset = (pageNum - 1) * limitNum;
 
-        const dataQuery = `
+const dataQuery = `
             SELECT product_id, name, jenis, merk, tipe_model, stok, 
                    harga_beli, harga_jual, gambar, is_featured,
                    created_at, updated_at
@@ -633,10 +633,14 @@ app.get('/api/products', authenticateToken, async (req, res) => {
             LIMIT ? OFFSET ?
         `;
 
-        // PERBAIKAN: Pastikan parameter adalah numbers
-        const dataParams = [...filterParams, limitNum, offset];
+        // --- PERBAIKAN DI SINI ---
+        // Kita paksa limitNum dan offset menjadi tipe Number sebelum masuk ke array
+        const finalLimit = Number(limitNum);
+        const finalOffset = Number(offset);
+
+        const dataParams = [...filterParams, finalLimit, finalOffset];
         
-        console.log('Query parameters:', dataParams); // Debug log
+        console.log('✅ Menjalankan query dengan parameter angka:', dataParams);
 
         const products = await dbManager.executeQuery(dataQuery, dataParams);
 
