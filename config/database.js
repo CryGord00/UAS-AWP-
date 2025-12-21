@@ -9,12 +9,16 @@ class DatabaseManager {
     constructor() {
         this.config = {
             host: MYSQLHOST,
-            user:  MYSQLUSER,
+            user: MYSQLUSER,
             password: MYSQLPASSWORD,
-            charset: 'utf8mb4'
+            port: MYSQLPORT, // Tambahkan ini
+            charset: 'utf8mb4',
+            ssl: {
+                rejectUnauthorized: false // Tambahkan ini agar bisa connect ke Aiven
+            }
         };
         
-        this.databaseName = process.env.MYSQLDATABASE || 'db_tokoglobalelektronik';
+        this.databaseName = MYSQLDATABASE;
         this.systemConnection = null;
         this.pool = null;
         this.init();

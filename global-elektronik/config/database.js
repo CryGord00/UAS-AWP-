@@ -6,6 +6,10 @@ const MYSQLPASSWORD = process.env.Password;
 const MYSQLPORT = process.env.Port || 11110;
 const MYSQLDATABASE = process.env.Name || 'defaultdb';
 
+console.log('--- Debug Koneksi ---');
+console.log('Menghubungkan ke Host:', MYSQLHOST);
+console.log('Menggunakan Port:', MYSQLPORT);
+
 class DatabaseManager {
     constructor() {
         this.config = {
