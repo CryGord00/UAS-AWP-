@@ -1,9 +1,15 @@
 const mysql = require('mysql2');
 const bcrypt = require('bcryptjs');
-const MYSQLHOST = process.env.MYSQLHOST;
-const MYSQLUSER = process.env.MYSQLUSER;
-const MYSQLPASSWORD = process.env.MYSQLPASSWORD;
-console.log('MYSQL_URL available:', process.env.MYSQL_URL ? 'YES' : 'NO');
+
+const MYSQLHOST = process.env.Host; 
+const MYSQLUSER = process.env.User;
+const MYSQLPASSWORD = process.env.Password;
+const MYSQLPORT = process.env.Port || 11110; 
+const MYSQLDATABASE = process.env.Name || 'defaultdb';
+
+console.log('--- Debug Koneksi ---');
+console.log('Host:', MYSQLHOST);
+console.log('Port:', MYSQLPORT);
 
 class DatabaseManager {
     constructor() {
@@ -11,10 +17,10 @@ class DatabaseManager {
             host: MYSQLHOST,
             user: MYSQLUSER,
             password: MYSQLPASSWORD,
-            port: MYSQLPORT, // Tambahkan ini
+            port: MYSQLPORT,
             charset: 'utf8mb4',
             ssl: {
-                rejectUnauthorized: false // Tambahkan ini agar bisa connect ke Aiven
+                rejectUnauthorized: false // Wajib ada untuk koneksi ke Aiven
             }
         };
         
