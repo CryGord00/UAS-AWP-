@@ -656,6 +656,43 @@ app.get('/api/products', authenticateToken, async (req, res) => {
             }
         });
 
+        // Get product by ID (INI YANG SEBELUMNYA HILANG)
+app.get('/api/products/:id', authenticateToken, async (req, res) => {
+    try {
+        const productId = req.params.id;
+        console.log('🔍 Fetching single product ID:', productId);
+
+        // Cek apakah ID valid angka (opsional, untuk mencegah error SQL)
+        if (isNaN(productId)) {
+             // Jika requestnya 'featured', jangan diproses di sini (safety check)
+             if (productId === 'featured') return next();
+             return res.status(400).json({ success: false, message: 'ID Produk tidak valid' });
+        }
+
+        const query = 'SELECT * FROM products WHERE product_id = ?';
+        const products = await dbManager.executeQuery(query, [productId]);
+
+        if (products.length === 0) {
+            return res.status(404).json({
+                success: false,
+                message: 'Produk tidak ditemukan.'
+            });
+        }
+
+        res.json({
+            success: true,
+            data: products[0] // Kirim object produk pertama
+        });
+
+    } catch (error) {
+        console.error('❌ Get single product error:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Terjadi kesalahan server saat mengambil data produk.'
+        });
+    }
+});
+
     } catch (error) {
         console.error('❌ Get products error:', error);
         res.status(500).json({

@@ -1,25 +1,9 @@
-// notification.js - FIXED VERSION
+// notification.js - FINAL FIXED VERSION
 const NOTIFICATION_CONFIG = {
-    success: {
-        icon: '✅',
-        title: 'Sukses!',
-        color: '#10B981'
-    },
-    error: {
-        icon: '❌',
-        title: 'Error!',
-        color: '#EF4444'
-    },
-    warning: {
-        icon: '⚠️',
-        title: 'Peringatan!',
-        color: '#F59E0B'
-    },
-    info: {
-        icon: 'ℹ️',
-        title: 'Info',
-        color: '#3B82F6'
-    }
+    success: { icon: '✅', title: 'Sukses!', color: '#10B981' },
+    error: { icon: '❌', title: 'Error!', color: '#EF4444' },
+    warning: { icon: '⚠️', title: 'Peringatan!', color: '#F59E0B' },
+    info: { icon: 'ℹ️', title: 'Info', color: '#3B82F6' }
 };
 
 class NotificationSystem {
@@ -31,22 +15,27 @@ class NotificationSystem {
     init() {
         // Event delegation untuk handle klik
         document.addEventListener('click', (e) => {
-            // Handle overlay click
+            // 1. Handle overlay click (klik di luar kotak)
             if (e.target.classList.contains('notification-overlay')) {
                 this.close();
                 return;
             }
             
-            // Handle confirm button click menggunakan event delegation
-            if (e.target.classList.contains('notification-confirm-btn')) {
+            // 2. Handle confirm button click (FIXED: Menggunakan .closest agar lebih akurat)
+            // Ini perbaikan utamanya: ganti .classList.contains menjadi .closest
+            // supaya kalau user klik teks di dalam tombol, tombol tetap bekerja.
+            const confirmBtn = e.target.closest('.notification-confirm-btn');
+            if (confirmBtn) {
+                e.preventDefault(); // Mencegah reload jika dalam form
                 e.stopPropagation();
                 this.confirm();
                 return;
             }
             
-            // Handle close button click
-            if (e.target.classList.contains('notification-close-btn') || 
-                e.target.closest('.notification-close-btn')) {
+            // 3. Handle close button click (X icon)
+            const closeBtn = e.target.closest('.notification-close-btn');
+            if (closeBtn) {
+                e.preventDefault();
                 e.stopPropagation();
                 this.close();
                 return;
@@ -75,16 +64,15 @@ class NotificationSystem {
             showConfirmButton = true
         } = options;
 
-        // Generate unique ID untuk notification
         const notificationId = 'notification-' + Date.now();
 
-        // Template notifikasi yang diperbaiki
+        // Template HTML (Ditambahkan type="button" agar aman di dalam form)
         const notificationHTML = `
             <div class="notification-overlay"></div>
             <div class="notification-container" id="${notificationId}">
                 <div class="notification ${type}">
                     ${showCloseButton ? `
-                        <button class="notification-close-btn absolute top-3 right-3 text-gray-400 hover:text-gray-600 transition">
+                        <button type="button" class="notification-close-btn absolute top-3 right-3 text-gray-400 hover:text-gray-600 transition">
                             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
                             </svg>
@@ -96,7 +84,7 @@ class NotificationSystem {
                         <div class="notification-message">${message}</div>
                         ${showConfirmButton ? `
                             <div class="notification-actions">
-                                <button class="notification-button notification-button-primary notification-confirm-btn">
+                                <button type="button" class="notification-button notification-button-primary notification-confirm-btn">
                                     ${confirmText}
                                 </button>
                             </div>
@@ -113,7 +101,7 @@ class NotificationSystem {
         const element = document.getElementById(notificationId);
         const overlay = document.querySelector('.notification-overlay');
 
-        // Simpan state notifikasi saat ini
+        // Simpan state
         this.currentNotification = {
             element,
             overlay,
@@ -124,19 +112,17 @@ class NotificationSystem {
             id: notificationId
         };
 
-        // Auto close jika ada durasi
+        // Auto close jika duration > 0
         if (duration > 0) {
             this.currentNotification.timeoutId = setTimeout(() => {
                 this.close();
             }, duration);
         }
 
-        // Focus pada tombol confirm untuk aksesibilitas
+        // Focus management
         setTimeout(() => {
             const confirmBtn = element.querySelector('.notification-confirm-btn');
-            if (confirmBtn) {
-                confirmBtn.focus();
-            }
+            if (confirmBtn) confirmBtn.focus();
         }, 100);
 
         return this;
@@ -147,32 +133,30 @@ class NotificationSystem {
 
         const { element, overlay, onClose, timeoutId } = this.currentNotification;
 
-        // Clear timeout jika ada
-        if (timeoutId) {
-            clearTimeout(timeoutId);
-        }
+        if (timeoutId) clearTimeout(timeoutId);
 
-        // Animasi keluar
+        // Animasi keluar manual via JS style agar lebih mulus
         if (element) {
-            element.style.animation = 'fadeOut 0.3s ease-in forwards';
+            element.style.opacity = '0';
+            element.style.transform = 'scale(0.95)';
+            element.style.transition = 'all 0.2s ease-in';
         }
         if (overlay) {
-            overlay.style.animation = 'fadeOut 0.3s ease-in forwards';
+            overlay.style.opacity = '0';
+            overlay.style.transition = 'all 0.2s ease-in';
         }
 
-        // Hapus elemen setelah animasi
+        // Hapus elemen setelah animasi selesai
         setTimeout(() => {
             if (element) element.remove();
             if (overlay) overlay.remove();
             
-            // Panggil callback onClose
             if (onClose && typeof onClose === 'function') {
                 onClose();
             }
             
-            // Reset current notification
             this.currentNotification = null;
-        }, 300);
+        }, 200);
     }
 
     confirm() {
@@ -180,7 +164,6 @@ class NotificationSystem {
 
         const { onConfirm } = this.currentNotification;
 
-        // Panggil callback onConfirm jika ada
         if (onConfirm && typeof onConfirm === 'function') {
             onConfirm();
         }
@@ -188,35 +171,24 @@ class NotificationSystem {
         this.close();
     }
 
-    // Method helper untuk tipe notifikasi yang berbeda
+    // Helper methods
     success(message, title, options = {}) {
-        return this.show(title, message, 'success', { 
-            confirmText: 'Tutup',
-            ...options 
-        });
+        return this.show(title, message, 'success', { confirmText: 'Tutup', ...options });
     }
 
     error(message, title, options = {}) {
-        return this.show(title, message, 'error', { 
-            confirmText: 'Tutup',
-            ...options 
-        });
+        return this.show(title, message, 'error', { confirmText: 'Tutup', ...options });
     }
 
     warning(message, title, options = {}) {
-        return this.show(title, message, 'warning', { 
-            confirmText: 'Tutup',
-            ...options 
-        });
+        return this.show(title, message, 'warning', { confirmText: 'Tutup', ...options });
     }
 
     info(message, title, options = {}) {
-        return this.show(title, message, 'info', { 
-            confirmText: 'Tutup',
-            ...options 
-        });
+        return this.show(title, message, 'info', { confirmText: 'Tutup', ...options });
     }
 
+    // INI YANG TADI HILANG: Method untuk dialog konfirmasi
     confirmDialog(message, title = 'Konfirmasi', onConfirm, options = {}) {
         return this.show(title, message, 'warning', {
             showConfirmButton: true,
@@ -229,5 +201,5 @@ class NotificationSystem {
     }
 }
 
-// Inisialisasi dan ekspos ke global scope
+// Inisialisasi
 window.notificationSystem = new NotificationSystem();
