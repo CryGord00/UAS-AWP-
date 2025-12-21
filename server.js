@@ -639,7 +639,7 @@ app.get('/api/products', authenticateToken, async (req, res) => {
         // dataParams sekarang HANYA berisi filterParams (tanpa limit & offset)
         const dataParams = [...filterParams];
         
-        console.log('🚀 Menjalankan query BYPASS LIMIT:', finalLimit);
+        console.log('🚀 Memperbaiki data produk: LIMIT', finalLimit);
 
         // Baris 641 (Sekarang memanggil query yang sudah ada angkanya)
         const products = await dbManager.executeQuery(dataQuery, dataParams);
