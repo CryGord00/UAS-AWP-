@@ -1,20 +1,25 @@
 const mysql = require('mysql2');
 const bcrypt = require('bcryptjs');
-const MYSQLHOST = process.env.MYSQLHOST;
-const MYSQLUSER = process.env.MYSQLUSER;
-const MYSQLPASSWORD = process.env.MYSQLPASSWORD;
-console.log('MYSQL_URL available:', process.env.MYSQL_URL ? 'YES' : 'NO');
+const MYSQLHOST = process.env.Host; 
+const MYSQLUSER = process.env.User;
+const MYSQLPASSWORD = process.env.Password;
+const MYSQLPORT = process.env.Port || 11110;
+const MYSQLDATABASE = process.env.Name || 'defaultdb';
 
 class DatabaseManager {
     constructor() {
         this.config = {
             host: MYSQLHOST,
-            user:  MYSQLUSER,
+            user: MYSQLUSER,
             password: MYSQLPASSWORD,
-            charset: 'utf8mb4'
+            port: MYSQLPORT,
+            charset: 'utf8mb4',
+            ssl: {
+                rejectUnauthorized: false 
+            }
         };
         
-        this.databaseName = process.env.MYSQLDATABASE || 'db_tokoglobalelektronik';
+        this.databaseName = MYSQLDATABASE;
         this.systemConnection = null;
         this.pool = null;
         this.init();
@@ -25,13 +30,13 @@ class DatabaseManager {
             console.log('🚀 Starting database manager initialization...');
             
             // Buat koneksi system (tanpa database)
-            this.systemConnection = mysql.createConnection(this.config);
+            //this.systemConnection = mysql.createConnection(this.config);
             
             // Buat database jika belum ada
-            await this.createDatabaseIfNotExists();
+            //await this.createDatabaseIfNotExists();
             
             // Tutup koneksi system
-            this.systemConnection.end();
+            //this.systemConnection.end();
             
             // Buat connection pool ke database
             this.pool = mysql.createPool({
